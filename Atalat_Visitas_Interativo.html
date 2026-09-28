@@ -2,7 +2,13 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1E5E3A">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Atalat Visitas">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="format-detection" content="telephone=no">
   <title>Atalat — Gestão Integrada de Visitas a Produtores</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -878,15 +884,296 @@
       overflow-y: auto;
     }
     
+    /* Mobile-First Optimized Experience for Field Smartphones */
+    .mobile-wizard-header { display: none; }
+    
     @media (max-width: 768px) {
+      body {
+        -webkit-tap-highlight-color: transparent;
+      }
+      
+      /* Header & Navigation on Mobile */
+      .wrap { padding: 16px 12px 60px; }
+      .top {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+      .top > div:last-child {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px !important;
+        width: 100%;
+      }
+      .top > div:last-child .primary[data-act="pick"] {
+        grid-column: span 2;
+        padding: 13px 16px;
+        font-size: 16px;
+        border-radius: 10px;
+        font-weight: 700;
+      }
+      .top > div:last-child .user-pill {
+        grid-column: span 2;
+        justify-content: space-between;
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+      .top > div:last-child #cloud-status-btn {
+        grid-column: span 2;
+        justify-content: center;
+        padding: 8px;
+        font-size: 13px;
+      }
+      .top > div:last-child button[data-act="open-users-modal"] {
+        grid-column: span 2;
+        padding: 10px;
+        font-size: 14px;
+      }
+
+      /* KPI Cards on Mobile */
+      .stats-strip {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin: 12px 0 16px;
+      }
+      .stat-card {
+        padding: 10px 12px;
+        border-radius: 8px;
+      }
+      .stat-card strong {
+        font-size: 20px;
+      }
+      .stat-card span {
+        font-size: 10px;
+      }
+      .stat-card small {
+        font-size: 11px;
+      }
+
+      /* Filter & Search on Mobile */
+      .filter-bar {
+        padding: 12px;
+        border-radius: 10px;
+        margin-bottom: 14px;
+      }
+      .search-row {
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .search-input-wrap {
+        min-width: 100%;
+      }
+      .search-input-wrap input {
+        min-height: 46px;
+        font-size: 16px !important; /* Prevents auto-zoom on mobile */
+        padding: 12px 36px 12px 14px;
+        border-radius: 8px;
+      }
+      .search-row button[data-act="export-excel"] {
+        width: 100%;
+        min-height: 44px;
+        font-size: 14px;
+        border-radius: 8px;
+      }
+      .filter-pills {
+        display: flex;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px;
+        padding-bottom: 6px;
+      }
+      .filter-pills::-webkit-scrollbar { display: none; }
+      .filter-pill {
+        flex-shrink: 0;
+        white-space: nowrap;
+        padding: 8px 14px;
+        font-size: 13px;
+        min-height: 38px;
+        border-radius: 20px;
+      }
+      .filter-dropdowns {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .filter-dropdowns label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        font-size: 13px;
+      }
+      .filter-dropdowns select {
+        width: 100%;
+        min-height: 44px;
+        padding: 10px 12px;
+        font-size: 16px !important;
+        border-radius: 8px;
+      }
+
+      /* Visit Cards on Mobile */
+      .cards {
+        gap: 10px;
+      }
+      .card {
+        padding: 14px;
+        border-radius: 12px;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .card .name {
+        font-size: 18px;
+        margin: 6px 0;
+      }
+      .card-meta {
+        font-size: 12px;
+        gap: 6px;
+      }
+      .card .actions {
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--line-light);
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+      }
+      .card .actions button {
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 6px;
+        font-size: 13px;
+        border-radius: 8px;
+      }
+      .card .actions button[data-act="report"] {
+        grid-column: span 2;
+        background: var(--blue-light);
+        color: var(--blue);
+        border-color: #c2daf2;
+        font-weight: 600;
+      }
+
+      /* Form Wizard on Mobile */
+      .layout {
+        flex-direction: column;
+      }
       .sidebar { display: none; }
-      .mobile-steps { display: flex; }
-      .formpane { padding: 24px 16px; }
-      .two-col { grid-template-columns: 1fr; }
-      .metrics { grid-template-columns: repeat(2, 1fr); }
-      .wrap { padding: 20px 14px; }
+      .mobile-wizard-header {
+        display: block;
+        padding-bottom: 12px;
+        margin-bottom: 14px;
+        border-bottom: 1px solid var(--line-light);
+      }
+      .mobile-steps {
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 4px 2px;
+      }
+      .mobile-steps::-webkit-scrollbar { display: none; }
+      .mobile-steps button {
+        min-width: 38px;
+        height: 38px;
+        padding: 0;
+        border-radius: 50%;
+        font-size: 13px;
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .formpane {
+        padding: 16px 14px 100px;
+        width: 100%;
+      }
+      .field {
+        margin-bottom: 20px;
+      }
+      .field > label, .field > legend {
+        font-size: 15px;
+        margin-bottom: 8px;
+      }
+      .field input, .field textarea, .field select {
+        font-size: 16px !important; /* Critical: stops iOS zoom */
+        padding: 12px 14px;
+        border-radius: 8px;
+        min-height: 46px;
+      }
+      .field textarea {
+        min-height: 100px;
+      }
+      .field-addon-btn {
+        width: 100%;
+        min-height: 44px;
+        font-size: 13px;
+        padding: 10px;
+        border-radius: 8px;
+        font-weight: 600;
+      }
+      .choices {
+        gap: 8px;
+      }
+      .choice {
+        padding: 11px 16px;
+        font-size: 14px;
+        min-height: 44px;
+        border-radius: 22px;
+        touch-action: manipulation;
+      }
+
+      /* Mobile Sticky Form Navigation Bar */
+      .nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        margin: 0;
+        padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -4px 20px rgba(15, 41, 66, 0.1);
+        z-index: 90;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .nav button {
+        min-height: 46px;
+        font-size: 14px;
+        border-radius: 8px;
+      }
+
+      /* Modals on Mobile */
+      .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+      .modal {
+        border-radius: 20px 20px 0 0;
+        max-height: 88vh;
+        padding: 22px 18px calc(24px + env(safe-area-inset-bottom, 0px));
+        width: 100%;
+        max-width: 100%;
+      }
+
+      /* Dashboard on Mobile */
+      .two-col { grid-template-columns: 1fr; gap: 14px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .metric { padding: 12px 10px; border-radius: 8px; }
+      .metric strong { font-size: 20px; }
+      .bar-row { grid-template-columns: 110px 1fr 50px; font-size: 12px; }
+      .chart-container { flex-direction: column; gap: 16px; }
+
+      /* Report on Mobile */
       .signatures-block { grid-template-columns: 1fr; gap: 30px; }
-      .report { padding: 20px 14px; }
+      .report { padding: 20px 14px; border-radius: 8px; }
       .report-row { flex-direction: column; gap: 4px; }
       .report-row span:first-child { max-width: none; }
       .report-row span:last-child { text-align: left; }
@@ -2638,18 +2925,35 @@ function formHTML() {
       </aside>
 
       <div class="formpane">
-        <div class="mobile-steps no-print">
-          ${ss.map((x, i) => `
-            <button class="${i === sectionIdx ? 'primary' : ''}" data-act="step" data-step="${i}" aria-label="Seção ${i + 1}: ${esc(x.title)}">
-              ${i + 1}
-            </button>
-          `).join('')}
+        <!-- Mobile Top Wizard Header -->
+        <div class="mobile-wizard-header no-print">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <button class="ghost" data-act="all" style="padding:6px 0;font-size:13px;font-weight:600">← Voltar à Lista</button>
+            <span class="badge" style="background:${accent()}18;color:${accent()};font-size:12px">${VISIT_TYPES[type].short}</span>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:4px">
+            <span><strong>Etapa ${sectionIdx + 1} de ${ss.length}:</strong> ${esc(s.title)}</span>
+            <span>${pct}% concluído</span>
+          </div>
+
+          <div class="progress-wrap" style="margin:4px 0 10px;height:5px;background:var(--line-light);border-radius:6px;overflow:hidden">
+            <div class="progress-bar" style="width:${pct}%;background:${accent()};height:100%"></div>
+          </div>
+
+          <div class="mobile-steps">
+            ${ss.map((x, i) => `
+              <button class="${i === sectionIdx ? 'primary' : ''}" data-act="step" data-step="${i}" aria-label="Etapa ${i + 1}: ${esc(x.title)}" title="${esc(x.title)}">
+                ${i + 1}
+              </button>
+            `).join('')}
+          </div>
         </div>
 
-        <div style="color:${accent()};font-weight:bold;font-size:13px;text-transform:uppercase;letter-spacing:0.05em">
+        <div class="no-mobile" style="color:${accent()};font-weight:bold;font-size:13px;text-transform:uppercase;letter-spacing:0.05em">
           Etapa ${sectionIdx + 1} de ${ss.length}
         </div>
-        <h2 style="margin:4px 0 24px">${esc(s.title)}</h2>
+        <h2 style="margin:4px 0 20px">${esc(s.title)}</h2>
 
         <form onsubmit="return false">
           ${s.fields.map(fieldHTML).join('')}
@@ -2657,10 +2961,10 @@ function formHTML() {
 
         <div class="nav no-print">
           <button data-act="prev" ${sectionIdx === 0 ? 'disabled' : ''}>← Anterior</button>
-          <div>
-            <button data-act="save">💾 Salvar Rascunho</button>
+          <div style="display:flex;gap:8px">
+            <button data-act="save" title="Salvar rascunho da visita">💾 Salvar</button>
             <button class="primary" data-act="${sectionIdx === ss.length - 1 ? 'finish' : 'next'}">
-              ${sectionIdx === ss.length - 1 ? '✓ Concluir e Gerar Relatório' : 'Próxima Etapa →'}
+              ${sectionIdx === ss.length - 1 ? '✓ Concluir' : 'Próxima Etapa →'}
             </button>
           </div>
         </div>
