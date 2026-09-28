@@ -1297,51 +1297,14 @@ function updateHeaderUserAndCloud() {
   if (!el) return;
   if (supabaseStatus === 'online') {
     el.className = 'cloud-pill cloud-online';
-    el.innerHTML = '🟢 Supabase Conectado';
+    el.innerHTML = '🟢 Nuvem Sincronizada';
   } else if (supabaseStatus === 'syncing') {
     el.className = 'cloud-pill cloud-syncing';
-    el.innerHTML = '🔄 Sincronizando Nuvem...';
+    el.innerHTML = '🔄 Sincronizando...';
   } else {
     el.className = 'cloud-pill cloud-offline';
-    el.innerHTML = '🟡 Modo Offline / Local';
+    el.innerHTML = '🟡 Modo Offline';
   }
-}
-
-function openSupabaseModal() {
-  let modal = $('#modal-container');
-  modal.innerHTML = `
-    <div class="modal-overlay" data-act="close-modal">
-      <div class="modal" onclick="event.stopPropagation()">
-        <div class="top" style="margin-bottom:12px">
-          <h2>Conexão com Banco Supabase</h2>
-          <button class="ghost" data-act="close-modal">✕</button>
-        </div>
-        <p class="muted small">Conecte sua conta do Supabase para armazenar visitas na nuvem com sincronização em tempo real.</p>
-        
-        <div class="field" style="margin-top:16px">
-          <label for="sb-url">Project URL do Supabase</label>
-          <input id="sb-url" placeholder="https://seu-projeto.supabase.co" value="${esc(supabaseConfig.url)}">
-        </div>
-
-        <div class="field">
-          <label for="sb-key">Anon / Public API Key</label>
-          <input id="sb-key" type="password" placeholder="eyJhbGciOi..." value="${esc(supabaseConfig.key)}">
-        </div>
-
-        <div style="background:#F4F7FB;border-radius:var(--radius-sm);padding:12px;margin:16px 0;font-size:12px" class="muted">
-          💡 <strong>Status:</strong> ${supabaseStatus === 'online' ? '🟢 Conectado ao banco de dados Atalat' : '🟡 Modo Local'}
-        </div>
-
-        <div class="toolbar" style="justify-content:space-between;margin-top:20px">
-          <button class="ghost danger-btn" data-act="disconnect-supabase">Desconectar</button>
-          <div style="display:flex;gap:8px">
-            ${supabaseClient ? '<button data-act="force-sync">🔄 Sincronizar Agora</button>' : ''}
-            <button class="primary" data-act="save-supabase-config">Salvar e Conectar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
 }
 
 // MEMBER APPROVALS MODAL
@@ -2273,8 +2236,8 @@ function listHTML() {
           <p class="muted" style="margin:4px 0 0">Captação de leite, relacionamento comercial, defesa de rota e inteligência de campo.</p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-          <button id="cloud-status-btn" class="cloud-pill ${supabaseStatus === 'online' ? 'cloud-online' : supabaseStatus === 'syncing' ? 'cloud-syncing' : 'cloud-offline'}" data-act="open-supabase-modal">
-            ${supabaseStatus === 'online' ? '🟢 Supabase Conectado' : supabaseStatus === 'syncing' ? '🔄 Sincronizando...' : '🟡 Modo Offline / Local'}
+          <button id="cloud-status-btn" class="cloud-pill ${supabaseStatus === 'online' ? 'cloud-online' : supabaseStatus === 'syncing' ? 'cloud-syncing' : 'cloud-offline'}" data-act="force-sync" title="Clique para sincronizar dados com a nuvem agora">
+            ${supabaseStatus === 'online' ? '🟢 Nuvem Sincronizada' : supabaseStatus === 'syncing' ? '🔄 Sincronizando...' : '🟡 Modo Offline'}
           </button>
           
           ${currentUser ? `
@@ -3096,32 +3059,6 @@ document.addEventListener('click', async e => {
   else if (a === 'share-wa') {
     let item = visits.find(v => v._id === el.dataset.id) || report;
     if (item) openWhatsAppModal(item);
-  }
-  else if (a === 'open-supabase-modal') {
-    openSupabaseModal();
-  }
-  else if (a === 'save-supabase-config') {
-    let url = $('#sb-url').value.trim();
-    let key = $('#sb-key').value.trim();
-    if (!url || !key) {
-      toast('Por favor preencha a URL e a Anon Key do Supabase');
-      return;
-    }
-    supabaseConfig = { url, key };
-    localStorage.setItem(SUPABASE_KEY, JSON.stringify(supabaseConfig));
-    initSupabase();
-    $('#modal-container').innerHTML = '';
-    toast('Conexão configurada! Sincronizando com Supabase...');
-  }
-  else if (a === 'disconnect-supabase') {
-    if (!confirm('Desconectar do Supabase? Os dados locais no navegador continuarão salvos.')) return;
-    localStorage.removeItem(SUPABASE_KEY);
-    supabaseClient = null;
-    supabaseConfig = { url: '', key: '' };
-    supabaseStatus = 'offline';
-    $('#modal-container').innerHTML = '';
-    toast('Desconectado do Supabase (Modo Offline Ativo)');
-    render();
   }
   else if (a === 'force-sync') {
     syncWithSupabase(true);
