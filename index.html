@@ -552,6 +552,38 @@
       color: var(--blue);
       border-color: #c8def4;
     }
+    .password-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    .password-input-wrap input {
+      padding-right: 42px !important;
+    }
+    .password-toggle-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-sm);
+      user-select: none;
+      line-height: 1;
+      transition: background 0.15s, color 0.15s;
+    }
+    .password-toggle-btn:hover {
+      background: #EDF2F7;
+      color: var(--ink);
+    }
     
     .choices {
       display: flex;
@@ -1506,11 +1538,14 @@ function loginHTML() {
           <form id="login-form" onsubmit="return false">
             <div class="field">
               <label for="login-user">Usuário ou E-mail</label>
-              <input id="login-user" placeholder="Ex.: carlos.mendes" autocomplete="username" required>
+              <input id="login-user" placeholder="Ex.: italo.pauloip01@gmail.com" autocomplete="username" required>
             </div>
             <div class="field">
               <label for="login-pass">Senha de Acesso</label>
-              <input id="login-pass" type="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+              <div class="password-input-wrap">
+                <input id="login-pass" type="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+                <button type="button" class="password-toggle-btn" data-act="toggle-password-visibility" data-target="login-pass" title="Visualizar ou ocultar senha">👁️</button>
+              </div>
             </div>
             <button class="primary" style="width:100%;padding:12px;margin-top:10px;font-size:15px" data-act="do-login">
               🔒 Entrar no Sistema
@@ -1544,7 +1579,10 @@ function loginHTML() {
             </div>
             <div class="field">
               <label for="req-pass">Crie sua Senha</label>
-              <input id="req-pass" type="password" placeholder="Mínimo 6 caracteres" required>
+              <div class="password-input-wrap">
+                <input id="req-pass" type="password" placeholder="Mínimo 6 caracteres" required>
+                <button type="button" class="password-toggle-btn" data-act="toggle-password-visibility" data-target="req-pass" title="Visualizar ou ocultar senha">👁️</button>
+              </div>
             </div>
             <button class="primary" style="width:100%;padding:12px;margin-top:10px;font-size:15px" data-act="do-request-access">
               📨 Enviar Solicitação de Acesso
@@ -3156,6 +3194,16 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'capture-gps') {
     captureGPS(el.dataset.field);
+  }
+  else if (a === 'toggle-password-visibility') {
+    let targetId = el.dataset.target;
+    let input = $('#' + targetId);
+    if (input) {
+      let isPass = input.type === 'password';
+      input.type = isPass ? 'text' : 'password';
+      el.textContent = isPass ? '🙈' : '👁️';
+      el.title = isPass ? 'Ocultar senha' : 'Visualizar senha';
+    }
   }
 });
 
