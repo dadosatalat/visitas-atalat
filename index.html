@@ -1083,7 +1083,9 @@ let searchQuery = '', filterType = 'all', filterStatus = 'all', filterRisk = 'al
 
 let supabaseClient = null;
 let supabaseStatus = 'offline'; // 'online', 'offline', 'syncing'
-let supabaseConfig = { url: '', key: '' };
+const DEFAULT_SUPABASE_URL = 'https://lfrdwmrkzlrvzvhmqvhz.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcmR3bXJremxydnp2aG1xdmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NTYwMDIsImV4cCI6MjEwNjEzMjAwMn0.AY9UquSlf7gEAet8-ps5SND-E_ETi2ePwLIgeH966CA';
+let supabaseConfig = { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_KEY };
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -1093,15 +1095,19 @@ const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 function initSupabase() {
   try {
     let saved = JSON.parse(localStorage.getItem(SUPABASE_KEY) || '{}');
-    if (saved.url && saved.key && window.supabase) {
-      supabaseConfig = saved;
-      supabaseClient = window.supabase.createClient(saved.url, saved.key);
+    let url = saved.url || DEFAULT_SUPABASE_URL;
+    let key = saved.key || DEFAULT_SUPABASE_KEY;
+    
+    if (url && key && window.supabase) {
+      supabaseConfig = { url, key };
+      supabaseClient = window.supabase.createClient(url, key);
       supabaseStatus = 'online';
       syncWithSupabase();
     } else {
       supabaseStatus = 'offline';
     }
   } catch (e) {
+    console.warn('Supabase init fallback to offline:', e);
     supabaseStatus = 'offline';
   }
 }
