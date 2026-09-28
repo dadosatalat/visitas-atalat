@@ -92,9 +92,28 @@ git push -u origin main
 
 ---
 
+## 🔐 Sistema de Acesso e Autorização de Membros
+
+O sistema possui controle de acesso com permissão por aprovação de membros:
+
+1. **Credenciais do Administrador Master:**
+   * **Usuário:** `admin`
+   * **Senha:** `atalat2026`
+   * **Acesso:** Painel completo + Gestão de Equipe e Autorizações.
+
+2. **Fluxo de Novos Membros (Compradores / Técnicos):**
+   * O colaborador acessa o sistema e clica na aba **"Solicitar Acesso"**.
+   * Preenche Nome completo, Usuário desejado, Senha e Cargo (ex.: *Comprador de Leite*, *Técnico de Campo*).
+   * O cadastro entra com status **`Pendente`**.
+   * O Administrador ou membro gestor faz login, clica no botão **`👥 Equipe & Autorizações`** no topo da tela, e clica em **"Aprovar"** ou **"Tornar Admin"**.
+   * Uma vez aprovado, o colaborador pode fazer login e acessar todos os dados e cadastros do sistema em tempo real!
+
+---
+
 ## 📱 Recursos e Vantagens para a Equipe de Campo
 
-* **Offline-First:** Funciona mesmo sem sinal de celular ou internet nas fazendas. As visitas são salvas localmente e sincronizam automaticamente ao reconectar.
+* **Controle de Acesso com Aprovação:** Segurança de dados sem complicação para a equipe.
+* **Offline-First:** Funciona perfeitamente mesmo sem sinal de celular ou internet nas fazendas. As visitas são salvas localmente e sincronizam automaticamente ao reconectar.
 * **Captura de GPS:** Pressione *📍 Capturar GPS Atual* para registrar latitude e longitude da propriedade.
 * **WhatsApp Integrado:** Envie resumos executivos da visita diretamente no WhatsApp da gerência ou do produtor.
 * **Exportação para Excel:** Baixe relatórios tabulares em `.csv` compatíveis com Excel brasileiro.

@@ -148,7 +148,7 @@
     }
     .print-logo { width: 125px; }
     
-    /* Supabase Cloud Pill */
+    /* Pills & Badges */
     .cloud-pill {
       cursor: pointer;
       display: inline-flex;
@@ -170,6 +170,60 @@
     .cloud-offline { background: #FFF7D6; color: #785200; border-color: #F7E07E; }
     .cloud-syncing { background: #E6F0FA; color: #104C82; border-color: #B5D4F5; animation: pulse 1.2s infinite; }
     @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+
+    .user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: white;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+    
+    /* Login Page */
+    .login-container {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: linear-gradient(135deg, #F4F7FB 0%, #E8F2EB 100%);
+    }
+    .login-card {
+      background: white;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow-lg);
+      max-width: 440px;
+      width: 100%;
+      padding: 36px 30px;
+      text-align: center;
+    }
+    .login-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--line-light);
+      margin: 20px 0 24px;
+    }
+    .login-tab {
+      flex: 1;
+      padding: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+      border-radius: 0;
+    }
+    .login-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
 
     /* Stats Top Bar */
     .stats-strip {
@@ -341,14 +395,10 @@
       align-items: center;
       gap: 4px;
     }
-    .badge-draft {
-      background: #FEF3C7;
-      color: #92400E;
-    }
-    .badge-done {
-      background: #D1FAE5;
-      color: #065F46;
-    }
+    .badge-draft { background: #FEF3C7; color: #92400E; }
+    .badge-done { background: #D1FAE5; color: #065F46; }
+    .badge-pending { background: #FEF3C7; color: #B45309; }
+    .badge-admin { background: #E0E7FF; color: #3730A3; }
     
     .empty {
       border: 2px dashed var(--line);
@@ -455,12 +505,13 @@
     }
     
     .field {
-      margin-bottom: 24px;
+      margin-bottom: 22px;
+      text-align: left;
     }
     .field > label, .field > legend {
       display: block;
       font-weight: 600;
-      margin-bottom: 8px;
+      margin-bottom: 7px;
       line-height: 1.45;
       color: var(--ink);
       font-size: 14px;
@@ -787,7 +838,7 @@
     .modal {
       background: white;
       border-radius: var(--radius);
-      max-width: 580px;
+      max-width: 620px;
       width: 100%;
       padding: 26px;
       box-shadow: var(--shadow-lg);
@@ -1075,16 +1126,20 @@ const RISK_COLORS = {
   "VERMELHO — perda iminente": "#BA2525",
 };
 
-// STORAGE & SUPABASE STATE
-const KEY = 'atalat.visitas.v1', TYPES_KEY = 'atalat.visitas.tipos.v1', SUPABASE_KEY = 'atalat.supabase.config.v1';
-let visits = [], view = 'list', form = {}, type = 'compra', id = null, sectionIdx = 0, report = null, dirty = false;
-let dashboardMonth = new Date().toLocaleDateString('en-CA').slice(0, 7);
-let searchQuery = '', filterType = 'all', filterStatus = 'all', filterRisk = 'all', sortBy = 'date_desc';
-
-let supabaseClient = null;
-let supabaseStatus = 'offline'; // 'online', 'offline', 'syncing'
+// STORAGE & CONFIG KEYS
 const DEFAULT_SUPABASE_URL = 'https://lfrdwmrkzlrvzvhmqvhz.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcmR3bXJremxydnp2aG1xdmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NTYwMDIsImV4cCI6MjEwNjEzMjAwMn0.AY9UquSlf7gEAet8-ps5SND-E_ETi2ePwLIgeH966CA';
+
+const KEY = 'atalat.visitas.v1', TYPES_KEY = 'atalat.visitas.tipos.v1', SUPABASE_KEY = 'atalat.supabase.config.v1', USER_SESSION_KEY = 'atalat.user.session.v1';
+
+let visits = [], users = [], currentUser = null;
+let view = 'list', form = {}, type = 'compra', id = null, sectionIdx = 0, report = null, dirty = false;
+let dashboardMonth = new Date().toLocaleDateString('en-CA').slice(0, 7);
+let searchQuery = '', filterType = 'all', filterStatus = 'all', filterRisk = 'all', sortBy = 'date_desc';
+let authTab = 'login'; // 'login' or 'request'
+
+let supabaseClient = null;
+let supabaseStatus = 'offline';
 let supabaseConfig = { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_KEY };
 
 const $ = s => document.querySelector(s);
@@ -1107,27 +1162,46 @@ function initSupabase() {
       supabaseStatus = 'offline';
     }
   } catch (e) {
-    console.warn('Supabase init fallback to offline:', e);
+    console.warn('Supabase offline fallback:', e);
     supabaseStatus = 'offline';
   }
+}
+
+function loadSession() {
+  try {
+    currentUser = JSON.parse(localStorage.getItem(USER_SESSION_KEY) || 'null');
+  } catch (e) {
+    currentUser = null;
+  }
+}
+
+function saveSession(u) {
+  currentUser = u;
+  if (u) localStorage.setItem(USER_SESSION_KEY, JSON.stringify(u));
+  else localStorage.removeItem(USER_SESSION_KEY);
+}
+
+function logout() {
+  saveSession(null);
+  toast('Você saiu do sistema');
+  render();
 }
 
 async function syncWithSupabase(showNotification = false) {
   if (!supabaseClient) return;
   supabaseStatus = 'syncing';
-  updateCloudPill();
+  updateHeaderUserAndCloud();
 
   try {
-    // 1. Fetch remote visits
-    const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
-    if (vErr) throw vErr;
+    // 1. Fetch remote users
+    const { data: remoteUsers, error: uErr } = await supabaseClient.from('usuarios').select('*');
+    if (!uErr && Array.isArray(remoteUsers)) {
+      users = remoteUsers;
+    }
 
     // 2. Fetch remote custom types
     const { data: remoteTypes, error: tErr } = await supabaseClient.from('tipos_visitas').select('*');
-    if (tErr) throw tErr;
-
-    // Merge custom types
-    if (Array.isArray(remoteTypes)) {
+    if (!tErr && Array.isArray(remoteTypes)) {
       remoteTypes.forEach(t => {
         if (t && t.id && Array.isArray(t.sections)) {
           VISIT_TYPES[t.id] = { id: t.id, label: t.label, short: t.short_label, color: t.color, sections: t.sections };
@@ -1136,9 +1210,10 @@ async function syncWithSupabase(showNotification = false) {
       saveTypes();
     }
 
-    // Merge visits (Cloud + Local)
-    let localMap = new Map(visits.map(v => [v._id, v]));
-    if (Array.isArray(remoteVisits)) {
+    // 3. Fetch remote visits
+    const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
+    if (!vErr && Array.isArray(remoteVisits)) {
+      let localMap = new Map(visits.map(v => [v._id, v]));
       remoteVisits.forEach(r => {
         let rec = r.data || {};
         rec._id = r.id;
@@ -1151,12 +1226,11 @@ async function syncWithSupabase(showNotification = false) {
           localMap.set(r.id, rec);
         }
       });
+      visits = [...localMap.values()];
+      persist();
     }
 
-    visits = [...localMap.values()];
-    persist();
-
-    // 3. Upsert local visits back to cloud to ensure complete two-way sync
+    // 4. Upsert local visits back to cloud
     if (visits.length > 0) {
       let rowsToUpsert = visits.map(v => ({
         id: v._id,
@@ -1172,19 +1246,18 @@ async function syncWithSupabase(showNotification = false) {
         data: v,
         updated_at: v._updated || new Date().toISOString()
       }));
-
       await supabaseClient.from('visitas').upsert(rowsToUpsert, { onConflict: 'id' });
     }
 
     supabaseStatus = 'online';
-    updateCloudPill();
+    updateHeaderUserAndCloud();
     if (showNotification) toast('Sincronização com Supabase concluída!');
     render();
   } catch (err) {
-    console.error('Erro na sincronização com Supabase:', err);
-    supabaseStatus = 'online'; // Still configured, but maybe temporarily network glitch
-    updateCloudPill();
-    if (showNotification) toast('Erro ao sincronizar com Supabase: ' + err.message);
+    console.error('Erro na sincronização:', err);
+    supabaseStatus = 'online';
+    updateHeaderUserAndCloud();
+    if (showNotification) toast('Erro ao sincronizar: ' + err.message);
   }
 }
 
@@ -1206,7 +1279,7 @@ async function saveVisitToSupabase(rec) {
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
   } catch (err) {
-    console.warn('Erro ao salvar no Supabase (salvo localmente):', err);
+    console.warn('Erro ao salvar no Supabase:', err);
   }
 }
 
@@ -1219,7 +1292,7 @@ async function deleteVisitFromSupabase(id) {
   }
 }
 
-function updateCloudPill() {
+function updateHeaderUserAndCloud() {
   let el = $('#cloud-status-btn');
   if (!el) return;
   if (supabaseStatus === 'online') {
@@ -1256,7 +1329,7 @@ function openSupabaseModal() {
         </div>
 
         <div style="background:#F4F7FB;border-radius:var(--radius-sm);padding:12px;margin:16px 0;font-size:12px" class="muted">
-          💡 <strong>Onde encontrar:</strong> No painel do Supabase, vá em <em>Project Settings > API</em>. Copie a <strong>Project URL</strong> e a chave <strong>anon / public</strong>. Lembre-se de rodar o arquivo <code>schema.sql</code> no SQL Editor do Supabase!
+          💡 <strong>Status:</strong> ${supabaseStatus === 'online' ? '🟢 Conectado ao banco de dados Atalat' : '🟡 Modo Local'}
         </div>
 
         <div class="toolbar" style="justify-content:space-between;margin-top:20px">
@@ -1269,6 +1342,302 @@ function openSupabaseModal() {
       </div>
     </div>
   `;
+}
+
+// MEMBER APPROVALS MODAL
+async function openUsersModal() {
+  let modal = $('#modal-container');
+  
+  // Refresh users from Supabase if connected
+  if (supabaseClient) {
+    const { data } = await supabaseClient.from('usuarios').select('*').order('created_at', { ascending: false });
+    if (data) users = data;
+  }
+  
+  let pending = users.filter(u => u.status === 'pendente');
+  let approved = users.filter(u => u.status === 'aprovado');
+  let blocked = users.filter(u => u.status === 'bloqueado');
+
+  modal.innerHTML = `
+    <div class="modal-overlay" data-act="close-modal">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="top" style="margin-bottom:12px">
+          <h2>Gestão da Equipe & Autorizações</h2>
+          <button class="ghost" data-act="close-modal">✕</button>
+        </div>
+        <p class="muted small">Autorize novos compradores e técnicos de campo para liberar a leitura e inserção de dados.</p>
+
+        <!-- Pending Section -->
+        <h3 style="margin-top:20px;color:var(--amber)">⏳ Solicitações Pendentes de Autorização (${pending.length})</h3>
+        ${pending.length ? `
+          <div style="display:grid;gap:10px;margin-bottom:20px">
+            ${pending.map(u => `
+              <div class="card" style="padding:14px">
+                <div>
+                  <strong>${esc(u.nome)}</strong> (@${esc(u.usuario)})<br>
+                  <span class="muted small">${esc(u.cargo || 'Comprador')} · Contato: ${esc(u.email_contato || 'Não informado')}</span>
+                </div>
+                <div class="actions">
+                  <button class="primary" data-act="approve-user" data-uid="${esc(u.id)}" style="padding:6px 12px;font-size:13px">✓ Autorizar Acesso</button>
+                  <button class="ghost danger-btn" data-act="reject-user" data-uid="${esc(u.id)}" style="padding:6px 12px;font-size:13px">✕ Recusar</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : '<p class="muted small" style="margin-bottom:20px">Nenhuma solicitação de acesso pendente no momento.</p>'}
+
+        <!-- Approved Members Section -->
+        <h3>👥 Membros Autorizados (${approved.length})</h3>
+        <div style="display:grid;gap:10px;max-height:220px;overflow-y:auto;margin-bottom:20px">
+          ${approved.map(u => `
+            <div class="card" style="padding:12px">
+              <div>
+                <strong>${esc(u.nome)}</strong> ${u.role === 'admin' ? '<span class="badge badge-admin">Admin</span>' : ''}<br>
+                <span class="muted small">${esc(u.cargo || 'Comprador')} · @${esc(u.usuario)}</span>
+              </div>
+              <div class="actions">
+                ${u.role !== 'admin' ? `<button class="ghost" data-act="toggle-admin" data-uid="${esc(u.id)}" style="font-size:12px">Tornar Admin</button>` : ''}
+                ${u.id !== currentUser.id ? `<button class="ghost danger-btn" data-act="block-user" data-uid="${esc(u.id)}" style="font-size:12px">Bloquear</button>` : '<span class="muted small">(Você)</span>'}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="toolbar" style="justify-content:flex-end">
+          <button class="primary" data-act="close-modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function approveUser(uid) {
+  let u = users.find(x => x.id === uid);
+  if (!u) return;
+  u.status = 'aprovado';
+  u.autorizado_por = currentUser ? currentUser.nome : 'Administrador Atalat';
+  u.updated_at = new Date().toISOString();
+  
+  if (supabaseClient) {
+    await supabaseClient.from('usuarios').upsert(u);
+  }
+  toast(`Acesso autorizado para ${u.nome}!`);
+  openUsersModal();
+}
+
+async function rejectUser(uid) {
+  if (!confirm('Recusar e remover este pedido de cadastro?')) return;
+  if (supabaseClient) {
+    await supabaseClient.from('usuarios').delete().eq('id', uid);
+  }
+  users = users.filter(x => x.id !== uid);
+  toast('Solicitação recusada.');
+  openUsersModal();
+}
+
+async function blockUser(uid) {
+  let u = users.find(x => x.id === uid);
+  if (!u) return;
+  if (!confirm(`Bloquear o acesso de ${u.nome}?`)) return;
+  u.status = 'bloqueado';
+  if (supabaseClient) {
+    await supabaseClient.from('usuarios').upsert(u);
+  }
+  toast(`Usuário ${u.nome} bloqueado.`);
+  openUsersModal();
+}
+
+async function toggleAdmin(uid) {
+  let u = users.find(x => x.id === uid);
+  if (!u) return;
+  u.role = 'admin';
+  if (supabaseClient) {
+    await supabaseClient.from('usuarios').upsert(u);
+  }
+  toast(`${u.nome} agora é Administrador!`);
+  openUsersModal();
+}
+
+// LOGIN & REQUEST ACCESS SCREEN
+function loginHTML() {
+  return `
+    <div class="login-container">
+      <div class="login-card">
+        <img class="logo" style="margin:0 auto 14px" alt="Atalat" src="${LOGO_BASE64}">
+        <div class="brand">ATALAT LATICÍNIOS</div>
+        <h1 style="font-size:24px;margin:4px 0 6px">Gestão de Visitas a Produtores</h1>
+        <p class="muted small">Sistema restrito de captação e acompanhamento de campo.</p>
+
+        <div class="login-tabs">
+          <button class="login-tab ${authTab === 'login' ? 'active' : ''}" data-act="switch-auth-tab" data-tab="login">Entrar</button>
+          <button class="login-tab ${authTab === 'request' ? 'active' : ''}" data-act="switch-auth-tab" data-tab="request">Solicitar Acesso</button>
+        </div>
+
+        ${authTab === 'login' ? `
+          <form id="login-form" onsubmit="return false">
+            <div class="field">
+              <label for="login-user">Usuário ou E-mail</label>
+              <input id="login-user" placeholder="Ex.: carlos.mendes" autocomplete="username" required>
+            </div>
+            <div class="field">
+              <label for="login-pass">Senha de Acesso</label>
+              <input id="login-pass" type="password" placeholder="Digite sua senha" autocomplete="current-password" required>
+            </div>
+            <button class="primary" style="width:100%;padding:12px;margin-top:10px;font-size:15px" data-act="do-login">
+              🔒 Entrar no Sistema
+            </button>
+          </form>
+          <p class="muted small" style="margin-top:18px">
+            Primeiro acesso da equipe? Usuário padrão: <strong>admin</strong> / Senha: <strong>atalat2026</strong>
+          </p>
+        ` : `
+          <form id="request-form" onsubmit="return false">
+            <div class="field">
+              <label for="req-nome">Seu Nome Completo</label>
+              <input id="req-nome" placeholder="Ex.: Carlos Mendes" required>
+            </div>
+            <div class="field">
+              <label for="req-contact">WhatsApp ou E-mail de Contato</label>
+              <input id="req-contact" placeholder="Ex.: (33) 99876-5432" required>
+            </div>
+            <div class="field">
+              <label for="req-cargo">Cargo / Área de Atuação</label>
+              <select id="req-cargo">
+                <option value="Comprador de Leite">Comprador de Leite (Captação)</option>
+                <option value="Técnico de Campo / Qualidade">Técnico de Campo / Qualidade</option>
+                <option value="Coordenador de Rota">Coordenador de Rota</option>
+                <option value="Diretoria / Gestão">Diretoria / Gestão</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="req-user">Crie seu Usuário de Login</label>
+              <input id="req-user" placeholder="Ex.: carlos.mendes" required>
+            </div>
+            <div class="field">
+              <label for="req-pass">Crie sua Senha</label>
+              <input id="req-pass" type="password" placeholder="Mínimo 6 caracteres" required>
+            </div>
+            <button class="primary" style="width:100%;padding:12px;margin-top:10px;font-size:15px" data-act="do-request-access">
+              📨 Enviar Solicitação de Acesso
+            </button>
+          </form>
+        `}
+      </div>
+    </div>
+  `;
+}
+
+async function handleLogin() {
+  let uInput = ($('#login-user')?.value || '').trim().toLowerCase();
+  let pInput = ($('#login-pass')?.value || '').trim();
+
+  if (!uInput || !pInput) {
+    toast('Preencha seu usuário e senha');
+    return;
+  }
+
+  // Check fallback admin
+  if (uInput === 'admin' && pInput === 'atalat2026') {
+    let adminObj = {
+      id: 'usr_admin_master',
+      nome: 'Administrador Atalat',
+      usuario: 'admin',
+      cargo: 'Diretoria / Gestão',
+      role: 'admin',
+      status: 'aprovado'
+    };
+    saveSession(adminObj);
+    toast('Bem-vindo, Administrador Atalat!');
+    view = 'list';
+    render();
+    return;
+  }
+
+  // Fetch from Supabase
+  if (supabaseClient) {
+    const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', uInput).single();
+    if (data && data.senha === pInput) {
+      if (data.status === 'pendente') {
+        alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+        return;
+      }
+      if (data.status === 'bloqueado') {
+        alert('🚫 Seu acesso está temporariamente desativado.');
+        return;
+      }
+      saveSession(data);
+      toast(`Bem-vindo, ${data.nome}!`);
+      view = 'list';
+      render();
+      return;
+    }
+  }
+
+  // Check local users list
+  let found = users.find(u => u.usuario.toLowerCase() === uInput && u.senha === pInput);
+  if (found) {
+    if (found.status === 'pendente') {
+      alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+      return;
+    }
+    if (found.status === 'bloqueado') {
+      alert('🚫 Seu acesso está temporariamente desativado.');
+      return;
+    }
+    saveSession(found);
+    toast(`Bem-vindo, ${found.nome}!`);
+    view = 'list';
+    render();
+    return;
+  }
+
+  toast('Usuário ou senha incorretos.');
+}
+
+async function handleRequestAccess() {
+  let nome = ($('#req-nome')?.value || '').trim();
+  let contact = ($('#req-contact')?.value || '').trim();
+  let cargo = ($('#req-cargo')?.value || 'Comprador de Leite');
+  let user = ($('#req-user')?.value || '').trim().toLowerCase();
+  let pass = ($('#req-pass')?.value || '').trim();
+
+  if (!nome || !contact || !user || !pass) {
+    toast('Por favor preencha todos os campos.');
+    return;
+  }
+  if (pass.length < 4) {
+    toast('A senha deve ter pelo menos 4 caracteres.');
+    return;
+  }
+
+  let newReq = {
+    id: 'usr_' + Date.now().toString(36),
+    nome: nome,
+    usuario: user,
+    senha: pass,
+    email_contato: contact,
+    cargo: cargo,
+    role: 'membro',
+    status: 'pendente',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+
+  if (supabaseClient) {
+    const { error } = await supabaseClient.from('usuarios').insert(newReq);
+    if (error) {
+      if (error.code === '23505') {
+        toast('Este nome de usuário já está em uso. Escolha outro.');
+        return;
+      }
+      console.warn('Erro ao salvar no Supabase:', error);
+    }
+  }
+
+  users.push(newReq);
+  alert('✅ Solicitação enviada com sucesso!\n\nSeu cadastro foi encaminhado para a equipe administrativa da Atalat. Assim que for autorizado, você poderá fazer o login normalmente.');
+  authTab = 'login';
+  render();
 }
 
 function loadTypes() {
@@ -1402,11 +1771,14 @@ function start(t) {
   form = base(t);
   id = 'v_' + (crypto.randomUUID ? crypto.randomUUID() : Date.now() + '_' + Math.random().toString(36).substr(2, 6));
   let today = new Date().toLocaleDateString('en-CA');
-  if (type === 'compra') form.p2 = today;
-  if (type === 'relacionamento') form.r2 = today;
-  if (type === 'comercial') form.m2 = today;
-  if (type === 'defesa') form.d2 = today;
-  if (type === 'perda') form.l2 = today;
+  
+  // Auto-fill responsible user and date
+  let respName = currentUser ? currentUser.nome : '';
+  if (type === 'compra') { form.p2 = today; if (respName) form.p1 = respName; }
+  if (type === 'relacionamento') { form.r2 = today; if (respName) form.r1 = respName; }
+  if (type === 'comercial') { form.m2 = today; if (respName) form.m1 = respName; }
+  if (type === 'defesa') { form.d2 = today; if (respName) form.d1 = respName; }
+  if (type === 'perda') { form.l2 = today; if (respName) form.l1 = respName; }
   
   sectionIdx = 0;
   dirty = false;
@@ -1890,6 +2262,8 @@ function listHTML() {
   let totalVolumeDefense = visits.filter(v => v._type === 'defesa' && v.d12 !== 'Perdido').reduce((acc, v) => acc + dailyVolume(v), 0);
   let highRiskCount = visits.filter(v => v._type === 'relacionamento' && /^(LARANJA|VERMELHO)/.test(v.r33 || '')).length;
 
+  let pendingUsersCount = users.filter(u => u.status === 'pendente').length;
+
   return `
     <div class="wrap">
       <div class="top">
@@ -1902,6 +2276,20 @@ function listHTML() {
           <button id="cloud-status-btn" class="cloud-pill ${supabaseStatus === 'online' ? 'cloud-online' : supabaseStatus === 'syncing' ? 'cloud-syncing' : 'cloud-offline'}" data-act="open-supabase-modal">
             ${supabaseStatus === 'online' ? '🟢 Supabase Conectado' : supabaseStatus === 'syncing' ? '🔄 Sincronizando...' : '🟡 Modo Offline / Local'}
           </button>
+          
+          ${currentUser ? `
+            <div class="user-pill no-print">
+              <span>👤 <strong>${esc(currentUser.nome)}</strong> <span class="muted small">(${esc(currentUser.cargo || 'Equipe')})</span></span>
+              <button class="ghost danger-btn" data-act="logout" style="padding:2px 6px;font-size:12px">Sair</button>
+            </div>
+          ` : ''}
+
+          ${currentUser && currentUser.role === 'admin' ? `
+            <button class="secondary" data-act="open-users-modal">
+              👥 Equipe & Autorizações ${pendingUsersCount > 0 ? `<span class="badge badge-pending" style="margin-left:4px">${pendingUsersCount}</span>` : ''}
+            </button>
+          ` : ''}
+
           <button class="primary" data-act="pick" style="padding:11px 20px;font-size:15px">＋ Nova Visita</button>
           <button class="secondary" data-act="dashboard">📊 Painel Analítico</button>
         </div>
@@ -2495,6 +2883,14 @@ async function saveCustom() {
 
 function render() {
   let root = $('#app');
+  
+  // If not logged in, render login page
+  if (!currentUser) {
+    root.innerHTML = loginHTML();
+    window.scrollTo(0, 0);
+    return;
+  }
+
   if (report) {
     root.innerHTML = reportHTML(report);
   } else if (view === 'list') {
@@ -2621,7 +3017,35 @@ document.addEventListener('click', async e => {
   let a = el.dataset.act;
   let x = visits.find(v => v._id === el.dataset.id);
 
-  if (a === 'dashboard') { view = 'dashboard'; render(); }
+  if (a === 'switch-auth-tab') {
+    authTab = el.dataset.tab;
+    render();
+  }
+  else if (a === 'do-login') {
+    handleLogin();
+  }
+  else if (a === 'do-request-access') {
+    handleRequestAccess();
+  }
+  else if (a === 'logout') {
+    logout();
+  }
+  else if (a === 'open-users-modal') {
+    openUsersModal();
+  }
+  else if (a === 'approve-user') {
+    approveUser(el.dataset.uid);
+  }
+  else if (a === 'reject-user') {
+    rejectUser(el.dataset.uid);
+  }
+  else if (a === 'block-user') {
+    blockUser(el.dataset.uid);
+  }
+  else if (a === 'toggle-admin') {
+    toggleAdmin(el.dataset.uid);
+  }
+  else if (a === 'dashboard') { view = 'dashboard'; render(); }
   else if (a === 'pick') { view = 'picker'; render(); }
   else if (a === 'all') all();
   else if (a === 'start') start(el.dataset.type);
@@ -2726,6 +3150,7 @@ window.addEventListener('beforeunload', e => {
 
 loadTypes();
 load();
+loadSession();
 initSupabase();
 render();
 
