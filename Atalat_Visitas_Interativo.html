@@ -1374,6 +1374,72 @@ async function openUsersModal() {
   `;
 }
 
+function openSettingsModal() {
+  let modal = $('#modal-container');
+  modal.innerHTML = `
+    <div class="modal-overlay" data-act="close-modal">
+      <div class="modal" onclick="event.stopPropagation()" style="max-width:580px">
+        <div class="top" style="margin-bottom:12px">
+          <h2>⚙️ Configurações & Ferramentas</h2>
+          <button class="ghost" data-act="close-modal">✕</button>
+        </div>
+        <p class="muted small">Exportação avançada, rotinas de backup e modelos de formulários.</p>
+
+        <div style="display:grid;gap:12px;margin:20px 0">
+          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <strong>📊 Exportar Planilha Excel (.csv)</strong><br>
+              <span class="muted small">Gera arquivo formatado para Excel com todas as visitas filtradas.</span>
+            </div>
+            <button class="secondary" data-act="export-excel" style="white-space:nowrap">📥 Baixar Excel</button>
+          </div>
+
+          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <strong>💾 Backup Completo de Registros (JSON)</strong><br>
+              <span class="muted small">Exporta arquivo de segurança com todas as visitas e tipos cadastrados.</span>
+            </div>
+            <button class="ghost" data-act="export" style="white-space:nowrap">💾 Salvar Backup</button>
+          </div>
+
+          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <strong>📤 Restaurar Backup de Registros</strong><br>
+              <span class="muted small">Carrega visitas e formulários de um backup JSON anterior.</span>
+            </div>
+            <div>
+              <button class="ghost" data-act="import" style="white-space:nowrap">📤 Importar Backup</button>
+              <input id="import-file" type="file" accept="application/json,.json" hidden>
+            </div>
+          </div>
+
+          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <strong>📝 Criar Novo Tipo de Formulário</strong><br>
+              <span class="muted small">Personalize questionários de campo específicos para a Atalat.</span>
+            </div>
+            <button class="ghost" data-act="custom-builder" style="white-space:nowrap">➕ Novo Tipo</button>
+          </div>
+
+          ${currentUser && currentUser.role === 'admin' ? `
+            <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;background:#F9FAFC">
+              <div>
+                <strong>✨ Dados de Demonstração</strong><br>
+                <span class="muted small">Carregar 12 visitas realistas para treinamento de equipe na rota Ataléia/MG.</span>
+              </div>
+              <button class="ghost" data-act="load-demo" style="white-space:nowrap">Carregar Dados</button>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="toolbar" style="justify-content:flex-end">
+          <button class="primary" data-act="close-modal">Concluído</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 async function approveUser(uid) {
   let u = users.find(x => x.id === uid);
   if (!u) return;
@@ -2116,14 +2182,7 @@ function loadDemoData() {
   render();
 }
 
-function clearDatabase() {
-  if (!confirm('ATENÇÃO: Deseja apagar TODOS os registros salvos neste navegador? Esta ação não pode ser desfeita.')) return;
-  if (!confirm('Por favor confirme novamente para apagar o banco de dados.')) return;
-  visits = [];
-  persist();
-  toast('Banco de dados limpo.');
-  render();
-}
+
 
 function reportHTML(v) {
   let t = VISIT_TYPES[v._type || 'compra'] || VISIT_TYPES.compra;
@@ -2253,8 +2312,9 @@ function listHTML() {
             </button>
           ` : ''}
 
-          <button class="primary" data-act="pick" style="padding:11px 20px;font-size:15px">＋ Nova Visita</button>
           <button class="secondary" data-act="dashboard">📊 Painel Analítico</button>
+          <button class="ghost" data-act="open-settings-modal" title="Configurações, Backup e Ferramentas">⚙️ Configurações</button>
+          <button class="primary" data-act="pick" style="padding:11px 20px;font-size:15px">＋ Nova Visita</button>
         </div>
       </div>
 
@@ -2282,16 +2342,6 @@ function listHTML() {
         </div>
       </div>
 
-      <!-- Toolbar: Backup, Excel, Demo -->
-      <div class="toolbar no-print">
-        <button data-act="export-excel" title="Exportar para planilha Excel (.csv)">📥 Exportar para Excel (.csv)</button>
-        <button data-act="export" title="Exportar arquivo JSON completo">💾 Backup JSON</button>
-        <button data-act="import" title="Restaurar registros de arquivo JSON">📤 Importar Backup</button>
-        <input id="import-file" type="file" accept="application/json,.json" hidden>
-        <button class="ghost" data-act="load-demo" title="Preencher com 12 visitas realistas para teste">✨ Dados de Exemplo</button>
-        <button class="ghost danger-btn" data-act="clear-all" style="margin-left:auto" title="Limpar banco de dados">🗑️ Limpar Banco</button>
-      </div>
-
       <!-- Filter & Search Bar -->
       <div class="filter-bar no-print">
         <div class="search-row">
@@ -2299,6 +2349,7 @@ function listHTML() {
             <input id="search-box" type="text" placeholder="🔍 Buscar por produtor, propriedade, município, rota, responsável..." value="${esc(searchQuery)}">
             ${searchQuery ? '<button class="clear-btn" data-act="clear-search">✕</button>' : ''}
           </div>
+          <button class="secondary" data-act="export-excel" title="Exportar registros filtrados para o Excel (.csv)">📥 Exportar Excel</button>
         </div>
 
         <div class="filter-pills">
@@ -3046,9 +3097,11 @@ document.addEventListener('click', async e => {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     toast('Backup JSON exportado!');
   }
+  else if (a === 'open-settings-modal') {
+    openSettingsModal();
+  }
   else if (a === 'import') $('#import-file').click();
   else if (a === 'load-demo') loadDemoData();
-  else if (a === 'clear-all') clearDatabase();
   else if (a === 'clear-search') { searchQuery = ''; render(); }
   else if (a === 'filter-type') { filterType = el.dataset.type; render(); }
   else if (a === 'dash-period') {
