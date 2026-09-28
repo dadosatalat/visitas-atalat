@@ -1158,6 +1158,10 @@ const RISK_COLORS = {
   "VERMELHO — perda iminente": "#BA2525",
 };
 
+// APP VERSION & BUILD
+const APP_VERSION = 'v2.4.0';
+const APP_BUILD_DATE = '28/09/2026';
+
 // STORAGE & CONFIG KEYS
 const DEFAULT_SUPABASE_URL = 'https://lfrdwmrkzlrvzvhmqvhz.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcmR3bXJremxydnp2aG1xdmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NTYwMDIsImV4cCI6MjEwNjEzMjAwMn0.AY9UquSlf7gEAet8-ps5SND-E_ETi2ePwLIgeH966CA';
@@ -1464,6 +1468,11 @@ function openSettingsModal() {
           ` : ''}
         </div>
 
+        <div style="background:#F4F7FB;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <span>🥛 <strong>Atalat Laticínios</strong></span>
+          <span>Versão: <strong style="color:var(--ink)">${APP_VERSION}</strong> (${APP_BUILD_DATE})</span>
+        </div>
+
         <div class="toolbar" style="justify-content:flex-end">
           <button class="primary" data-act="close-modal">Concluído</button>
         </div>
@@ -1589,6 +1598,10 @@ function loginHTML() {
             </button>
           </form>
         `}
+
+        <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--line-light);text-align:center" class="muted small">
+          🥛 Atalat Visitas · <strong>${APP_VERSION}</strong> · Atualizado em ${APP_BUILD_DATE}
+        </div>
       </div>
     </div>
   `;
@@ -2357,7 +2370,10 @@ function listHTML() {
       <div class="top">
         <div>
           <img class="logo" alt="Atalat — Ataléia, Minas Gerais" src="${LOGO_BASE64}">
-          <h1>Gestão de Visitas a Produtores</h1>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <h1>Gestão de Visitas a Produtores</h1>
+            <span class="badge" style="background:#EBF3FB;color:var(--primary);font-size:11px;padding:3px 8px;border:1px solid #D0E1F3" title="Versão do Sistema">${APP_VERSION}</span>
+          </div>
           <p class="muted" style="margin:4px 0 0">Captação de leite, relacionamento comercial, defesa de rota e inteligência de campo.</p>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
@@ -2515,6 +2531,10 @@ function listHTML() {
           </div>
         </div>
       `}
+
+      <footer style="text-align:center;padding:32px 16px 20px;color:var(--muted);font-size:12px" class="no-print">
+        🥛 Atalat Laticínios · Sistema Integrado de Gestão de Campo · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
+      </footer>
     </div>
   `;
 }
@@ -2856,6 +2876,10 @@ function dashboardHTML() {
           ` : '<p class="muted">Nenhuma perda de fornecedor registrada no período.</p>'}
         </section>
       </div>
+
+      <footer style="text-align:center;padding:32px 16px 20px;color:var(--muted);font-size:12px" class="no-print">
+        🥛 Atalat Laticínios · Sistema Integrado de Gestão de Campo · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
+      </footer>
     </div>
   `;
 }
