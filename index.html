@@ -1756,7 +1756,7 @@ function openSettingsModal() {
         </div>
 
         <div style="background:#F4F7FB;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <span>🥛 <strong>Atalat Laticínios</strong></span>
+          <span>🥛 <strong>Laticínios Atalat</strong></span>
           <span>Versão: <strong style="color:var(--ink)">${APP_VERSION}</strong> (${APP_BUILD_DATE})</span>
         </div>
 
@@ -1821,10 +1821,9 @@ function loginHTML() {
     <div class="login-container">
       <div class="login-card">
         <img class="logo" style="margin:0 auto 14px" alt="Atalat" src="${LOGO_BASE64}">
-        <div class="brand">ATALAT LATICÍNIOS</div>
+        <div class="brand">LATICÍNIOS ATALAT</div>
         <h1 style="font-size:24px;margin:4px 0 6px">Gestão de Visitas a Produtores</h1>
         <p class="muted small">Sistema restrito de captação e acompanhamento de campo.</p>
-
         <div class="login-tabs">
           <button class="login-tab ${authTab === 'login' ? 'active' : ''}" data-act="switch-auth-tab" data-tab="login">Entrar</button>
           <button class="login-tab ${authTab === 'request' ? 'active' : ''}" data-act="switch-auth-tab" data-tab="request">Solicitar Acesso</button>
@@ -1848,7 +1847,7 @@ function loginHTML() {
             </button>
           </form>
           <p class="muted small" style="margin-top:18px">
-            Uso restrito a colaboradores autorizados da Atalat Laticínios.
+            Uso restrito a colaboradores autorizados da Laticínios Atalat.
           </p>
         ` : `
           <form id="request-form" onsubmit="return false">
@@ -2628,7 +2627,7 @@ function reportHTML(v) {
         <div class="signatures-block">
           <div class="sig-line">
             <strong>${esc(resp || 'Responsável Técnico / Captação')}</strong>
-            Atalat Laticínios
+            Laticínios Atalat
           </div>
           <div class="sig-line">
             <strong>${esc(prod || 'Produtor Rural')}</strong>
@@ -2820,7 +2819,7 @@ function listHTML() {
       `}
 
       <footer style="text-align:center;padding:32px 16px 20px;color:var(--muted);font-size:12px" class="no-print">
-        🥛 Atalat Laticínios · Sistema Integrado de Gestão de Campo · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
+        🥛 Laticínios Atalat · Sistema Integrado de Gestão de Campo · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
       </footer>
     </div>
   `;
@@ -3182,7 +3181,7 @@ function dashboardHTML() {
       </div>
 
       <footer style="text-align:center;padding:32px 16px 20px;color:var(--muted);font-size:12px" class="no-print">
-        🥛 Atalat Laticínios · Sistema Integrado de Gestão de Campo · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
+        🥛 Laticínios Atalat · Sistema Integrado de Gestão de Campo · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
       </footer>
     </div>
   `;

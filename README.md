@@ -1,6 +1,6 @@
 # 🥛 Atalat — Gestão Integrada de Visitas a Produtores de Leite
 
-Sistema web moderno e completo para captação de leite, relacionamento com fornecedores, defesa de rotas, registro de perdas e inteligência de campo da **Atalat Laticínios**.
+Sistema web moderno e completo para captação de leite, relacionamento com fornecedores, defesa de rotas, registro de perdas e inteligência de campo da **Laticínios Atalat**.
 
 ---
 
