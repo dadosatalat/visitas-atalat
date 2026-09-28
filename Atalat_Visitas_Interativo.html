@@ -1517,7 +1517,7 @@ function loginHTML() {
             </button>
           </form>
           <p class="muted small" style="margin-top:18px">
-            Primeiro acesso da equipe? Usuário padrão: <strong>admin</strong> / Senha: <strong>atalat2026</strong>
+            Uso restrito a colaboradores autorizados da Atalat Laticínios.
           </p>
         ` : `
           <form id="request-form" onsubmit="return false">
@@ -1565,12 +1565,30 @@ async function handleLogin() {
     return;
   }
 
-  // Check fallback admin
+  // Check built-in master admin accounts
+  if ((uInput === 'italo.pauloip01@gmail.com' || uInput === 'italo') && pInput === '75648054') {
+    let adminObj = {
+      id: 'usr_italo_admin',
+      nome: 'Ítalo Silva',
+      usuario: 'italo.pauloip01@gmail.com',
+      email_contato: 'italo.pauloip01@gmail.com',
+      cargo: 'Administrador Geral',
+      role: 'admin',
+      status: 'aprovado'
+    };
+    saveSession(adminObj);
+    toast('Bem-vindo, Ítalo Silva!');
+    view = 'list';
+    render();
+    return;
+  }
+
   if (uInput === 'admin' && pInput === 'atalat2026') {
     let adminObj = {
       id: 'usr_admin_master',
       nome: 'Administrador Atalat',
       usuario: 'admin',
+      email_contato: 'admin@atalat.com.br',
       cargo: 'Diretoria / Gestão',
       role: 'admin',
       status: 'aprovado'
@@ -1584,26 +1602,36 @@ async function handleLogin() {
 
   // Fetch from Supabase
   if (supabaseClient) {
-    const { data, error } = await supabaseClient.from('usuarios').select('*').eq('usuario', uInput).single();
-    if (data && data.senha === pInput) {
-      if (data.status === 'pendente') {
-        alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+    try {
+      const { data: list, error } = await supabaseClient
+        .from('usuarios')
+        .select('*')
+        .or(`usuario.ilike.${uInput},email_contato.ilike.${uInput}`)
+        .limit(1);
+      
+      let data = list && list[0];
+      if (data && data.senha === pInput) {
+        if (data.status === 'pendente') {
+          alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+          return;
+        }
+        if (data.status === 'bloqueado') {
+          alert('🚫 Seu acesso está temporariamente desativado.');
+          return;
+        }
+        saveSession(data);
+        toast(`Bem-vindo, ${data.nome}!`);
+        view = 'list';
+        render();
         return;
       }
-      if (data.status === 'bloqueado') {
-        alert('🚫 Seu acesso está temporariamente desativado.');
-        return;
-      }
-      saveSession(data);
-      toast(`Bem-vindo, ${data.nome}!`);
-      view = 'list';
-      render();
-      return;
+    } catch (err) {
+      console.warn('Supabase login check:', err);
     }
   }
 
   // Check local users list
-  let found = users.find(u => u.usuario.toLowerCase() === uInput && u.senha === pInput);
+  let found = users.find(u => (u.usuario.toLowerCase() === uInput || (u.email_contato && u.email_contato.toLowerCase() === uInput)) && u.senha === pInput);
   if (found) {
     if (found.status === 'pendente') {
       alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');

@@ -105,13 +105,26 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tipos_visitas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios;
 
--- 8. INSERIR USUÁRIO ADMINISTRADOR PADRÃO (SE NÃO EXISTIR)
-INSERT INTO public.usuarios (id, nome, usuario, senha, cargo, role, status, autorizado_por)
-VALUES (
+-- 8. INSERIR USUÁRIOS ADMINISTRADORES PADRÃO (SE NÃO EXISTIREM)
+INSERT INTO public.usuarios (id, nome, usuario, senha, email_contato, cargo, role, status, autorizado_por)
+VALUES 
+(
+  'usr_italo_admin',
+  'Ítalo Silva',
+  'italo.pauloip01@gmail.com',
+  '75648054',
+  'italo.pauloip01@gmail.com',
+  'Administrador Geral',
+  'admin',
+  'aprovado',
+  'Sistema Atalat'
+),
+(
   'usr_admin_master',
   'Administrador Atalat',
   'admin',
   'atalat2026',
+  'admin@atalat.com.br',
   'Diretoria / Gestão',
   'admin',
   'aprovado',
