@@ -1453,7 +1453,7 @@ const APP_BUILD_DATE = '28/09/2026';
 const DEFAULT_SUPABASE_URL = 'https://lfrdwmrkzlrvzvhmqvhz.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcmR3bXJremxydnp2aG1xdmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NTYwMDIsImV4cCI6MjEwNjEzMjAwMn0.AY9UquSlf7gEAet8-ps5SND-E_ETi2ePwLIgeH966CA';
 
-const KEY = 'atalat.visitas.v1', TYPES_KEY = 'atalat.visitas.tipos.v1', SUPABASE_KEY = 'atalat.supabase.config.v1', USER_SESSION_KEY = 'atalat.user.session.v1';
+const KEY = 'atalat.visitas.v1', TYPES_KEY = 'atalat.visitas.tipos.v1', SUPABASE_KEY = 'atalat.supabase.config.v1', USER_SESSION_KEY = 'atalat.user.session.v1', CUSTOM_PASSWORDS_KEY = 'atalat.custom.passwords.v1';
 
 let visits = [], users = [], currentUser = null;
 let view = 'list', form = {}, type = 'compra', id = null, sectionIdx = 0, report = null, dirty = false;
@@ -1468,6 +1468,52 @@ let supabaseConfig = { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_KEY };
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function getCustomPasswords() {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_PASSWORDS_KEY) || '{}');
+  } catch (e) {
+    return {};
+  }
+}
+
+async function updatePassword(targetUserId, newPassword) {
+  let pMap = getCustomPasswords();
+  pMap[targetUserId] = newPassword;
+  
+  let targetUser = users.find(u => u.id === targetUserId || u.usuario === targetUserId);
+  if (targetUser) {
+    pMap[targetUser.usuario] = newPassword;
+    if (targetUser.email_contato) pMap[targetUser.email_contato] = newPassword;
+    targetUser.senha = newPassword;
+    targetUser.updated_at = new Date().toISOString();
+  }
+  
+  if (targetUserId === 'usr_italo_admin') {
+    pMap['italo.pauloip01@gmail.com'] = newPassword;
+    pMap['italo'] = newPassword;
+  } else if (targetUserId === 'usr_admin_master') {
+    pMap['admin'] = newPassword;
+  }
+  
+  localStorage.setItem(CUSTOM_PASSWORDS_KEY, JSON.stringify(pMap));
+
+  if (currentUser && (currentUser.id === targetUserId || currentUser.usuario === targetUserId)) {
+    currentUser.senha = newPassword;
+    saveSession(currentUser);
+  }
+
+  if (supabaseClient) {
+    try {
+      let rowToUpsert = targetUser 
+        ? { ...targetUser, senha: newPassword, updated_at: new Date().toISOString() } 
+        : { id: targetUserId, senha: newPassword, updated_at: new Date().toISOString() };
+      await supabaseClient.from('usuarios').upsert(rowToUpsert, { onConflict: 'id' });
+    } catch (err) {
+      console.warn('Erro ao atualizar senha no Supabase:', err);
+    }
+  }
+}
 
 // Initialize Supabase Client
 function initSupabase() {
@@ -1651,7 +1697,7 @@ async function openUsersModal() {
           <h2>Gestão da Equipe & Autorizações</h2>
           <button class="ghost" data-act="close-modal">✕</button>
         </div>
-        <p class="muted small">Autorize novos compradores e técnicos de campo para liberar a leitura e inserção de dados.</p>
+        <p class="muted small">Autorize novos compradores e técnicos de campo, gerencie cargos ou redefina senhas.</p>
 
         <!-- Pending Section -->
         <h3 style="margin-top:20px;color:var(--amber)">⏳ Solicitações Pendentes de Autorização (${pending.length})</h3>
@@ -1674,20 +1720,39 @@ async function openUsersModal() {
 
         <!-- Approved Members Section -->
         <h3>👥 Membros Autorizados (${approved.length})</h3>
-        <div style="display:grid;gap:10px;max-height:220px;overflow-y:auto;margin-bottom:20px">
+        <div style="display:grid;gap:10px;max-height:260px;overflow-y:auto;margin-bottom:20px">
           ${approved.map(u => `
-            <div class="card" style="padding:12px">
+            <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <div>
                 <strong>${esc(u.nome)}</strong> ${u.role === 'admin' ? '<span class="badge badge-admin">Admin</span>' : ''}<br>
                 <span class="muted small">${esc(u.cargo || 'Comprador')} · @${esc(u.usuario)}</span>
               </div>
-              <div class="actions">
-                ${u.role !== 'admin' ? `<button class="ghost" data-act="toggle-admin" data-uid="${esc(u.id)}" style="font-size:12px">Tornar Admin</button>` : ''}
-                ${u.id !== currentUser.id ? `<button class="ghost danger-btn" data-act="block-user" data-uid="${esc(u.id)}" style="font-size:12px">Bloquear</button>` : '<span class="muted small">(Você)</span>'}
+              <div class="actions" style="gap:6px;flex-wrap:wrap">
+                <button class="ghost" data-act="open-change-password-modal" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px" title="Redefinir senha deste usuário">🔑 Senha</button>
+                ${u.role !== 'admin' ? `<button class="ghost" data-act="toggle-admin" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Tornar Admin</button>` : ''}
+                ${u.id !== (currentUser ? currentUser.id : '') ? `<button class="ghost danger-btn" data-act="block-user" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Bloquear</button>` : '<span class="muted small" style="padding:4px 6px">(Você)</span>'}
               </div>
             </div>
           `).join('')}
         </div>
+
+        ${blocked.length ? `
+          <h3 style="margin-top:16px;color:var(--danger)">🚫 Membros Bloqueados (${blocked.length})</h3>
+          <div style="display:grid;gap:10px;max-height:160px;overflow-y:auto;margin-bottom:20px">
+            ${blocked.map(u => `
+              <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+                <div>
+                  <strong>${esc(u.nome)}</strong> <span class="badge badge-draft">Bloqueado</span><br>
+                  <span class="muted small">${esc(u.cargo || 'Comprador')} · @${esc(u.usuario)}</span>
+                </div>
+                <div class="actions" style="gap:6px">
+                  <button class="primary" data-act="approve-user" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Desbloquear</button>
+                  <button class="ghost danger-btn" data-act="reject-user" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Excluir</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
 
         <div class="toolbar" style="justify-content:flex-end">
           <button class="primary" data-act="close-modal">Fechar</button>
@@ -1706,9 +1771,17 @@ function openSettingsModal() {
           <h2>⚙️ Configurações & Ferramentas</h2>
           <button class="ghost" data-act="close-modal">✕</button>
         </div>
-        <p class="muted small">Exportação avançada, rotinas de backup e modelos de formulários.</p>
+        <p class="muted small">Exportação avançada, alteração de senha, rotinas de backup e modelos de formulários.</p>
 
         <div style="display:grid;gap:12px;margin:20px 0">
+          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;background:#EFF6FF;border:1px solid #BFDBFE">
+            <div>
+              <strong>🔑 Alterar Minha Senha</strong><br>
+              <span class="muted small">Modifique sua senha de acesso ao sistema com rapidez e segurança.</span>
+            </div>
+            <button class="primary" data-act="open-change-password-modal" style="white-space:nowrap">🔑 Mudar Senha</button>
+          </div>
+
           <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
             <div>
               <strong>📊 Exportar Planilha Excel (.csv)</strong><br>
@@ -1766,6 +1839,75 @@ function openSettingsModal() {
       </div>
     </div>
   `;
+}
+
+function openChangePasswordModal(targetUid) {
+  let modal = $('#modal-container');
+  let isOwn = !targetUid || (currentUser && (targetUid === currentUser.id || targetUid === currentUser.usuario));
+  let targetUser = isOwn ? currentUser : (users.find(u => u.id === targetUid || u.usuario === targetUid) || { id: targetUid, nome: 'Colaborador', usuario: targetUid });
+  let finalUid = targetUser ? targetUser.id : (targetUid || (currentUser ? currentUser.id : ''));
+
+  modal.innerHTML = `
+    <div class="modal-overlay">
+      <div class="modal" style="max-width:440px">
+        <div class="top" style="margin-bottom:14px">
+          <h2>🔑 ${isOwn ? 'Alterar Minha Senha' : 'Redefinir Senha de Membro'}</h2>
+          <button class="ghost" data-act="close-modal">✕</button>
+        </div>
+        
+        <p class="muted small" style="margin-bottom:16px">
+          ${isOwn 
+            ? `Você está alterando a senha da sua conta: <strong>${esc(currentUser ? currentUser.nome : 'Administrador')}</strong>.` 
+            : `Defina a nova senha para o colaborador: <strong>${esc(targetUser.nome)}</strong> (@${esc(targetUser.usuario || '')}).`}
+        </p>
+
+        <form id="change-pass-form" onsubmit="return false">
+          <div class="field">
+            <label for="new-pass-1">Nova Senha</label>
+            <div class="password-input-wrap">
+              <input id="new-pass-1" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password" required>
+              <button type="button" class="password-toggle-btn" data-act="toggle-password-visibility" data-target="new-pass-1" title="Visualizar ou ocultar senha">👁️</button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="new-pass-2">Confirmar Nova Senha</label>
+            <div class="password-input-wrap">
+              <input id="new-pass-2" type="password" placeholder="Repita a nova senha" autocomplete="new-password" required>
+              <button type="button" class="password-toggle-btn" data-act="toggle-password-visibility" data-target="new-pass-2" title="Visualizar ou ocultar senha">👁️</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+            <button class="ghost" data-act="close-modal">Cancelar</button>
+            <button class="primary" data-act="save-change-password" data-uid="${esc(finalUid)}">💾 Salvar Senha</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+async function handleSaveChangePassword(targetUid) {
+  let p1 = ($('#new-pass-1')?.value || '').trim();
+  let p2 = ($('#new-pass-2')?.value || '').trim();
+
+  if (!p1) {
+    toast('Digite a nova senha.');
+    return;
+  }
+  if (p1.length < 4) {
+    toast('A senha deve ter no mínimo 4 caracteres.');
+    return;
+  }
+  if (p1 !== p2) {
+    toast('As senhas digitadas não coincidem. Digite novamente.');
+    return;
+  }
+
+  await updatePassword(targetUid, p1);
+  $('#modal-container').innerHTML = '';
+  toast('✅ Senha atualizada com sucesso!');
 }
 
 async function approveUser(uid) {
@@ -1902,8 +2044,11 @@ async function handleLogin() {
     return;
   }
 
-  // Check built-in master admin accounts
-  if ((uInput === 'italo.pauloip01@gmail.com' || uInput === 'italo') && pInput === '75648054') {
+  let pMap = getCustomPasswords();
+
+  // Check built-in master admin accounts (with dynamic updated password support)
+  let italoPass = pMap['usr_italo_admin'] || pMap['italo.pauloip01@gmail.com'] || pMap['italo'] || '75648054';
+  if ((uInput === 'italo.pauloip01@gmail.com' || uInput === 'italo') && pInput === italoPass) {
     let adminObj = {
       id: 'usr_italo_admin',
       nome: 'Ítalo Silva',
@@ -1920,7 +2065,8 @@ async function handleLogin() {
     return;
   }
 
-  if (uInput === 'admin' && pInput === 'atalat2026') {
+  let adminPass = pMap['usr_admin_master'] || pMap['admin'] || 'atalat2026';
+  if (uInput === 'admin' && pInput === adminPass) {
     let adminObj = {
       id: 'usr_admin_master',
       nome: 'Administrador Atalat',
@@ -1947,20 +2093,23 @@ async function handleLogin() {
         .limit(1);
       
       let data = list && list[0];
-      if (data && data.senha === pInput) {
-        if (data.status === 'pendente') {
-          alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+      if (data) {
+        let expectedPass = pMap[data.id] || pMap[data.usuario] || data.senha;
+        if (pInput === expectedPass) {
+          if (data.status === 'pendente') {
+            alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+            return;
+          }
+          if (data.status === 'bloqueado') {
+            alert('🚫 Seu acesso está temporariamente desativado.');
+            return;
+          }
+          saveSession(data);
+          toast(`Bem-vindo, ${data.nome}!`);
+          view = 'list';
+          render();
           return;
         }
-        if (data.status === 'bloqueado') {
-          alert('🚫 Seu acesso está temporariamente desativado.');
-          return;
-        }
-        saveSession(data);
-        toast(`Bem-vindo, ${data.nome}!`);
-        view = 'list';
-        render();
-        return;
       }
     } catch (err) {
       console.warn('Supabase login check:', err);
@@ -1968,21 +2117,24 @@ async function handleLogin() {
   }
 
   // Check local users list
-  let found = users.find(u => (u.usuario.toLowerCase() === uInput || (u.email_contato && u.email_contato.toLowerCase() === uInput)) && u.senha === pInput);
+  let found = users.find(u => (u.usuario.toLowerCase() === uInput || (u.email_contato && u.email_contato.toLowerCase() === uInput)));
   if (found) {
-    if (found.status === 'pendente') {
-      alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+    let expectedPass = pMap[found.id] || pMap[found.usuario] || found.senha;
+    if (pInput === expectedPass) {
+      if (found.status === 'pendente') {
+        alert('⚠️ Sua solicitação de acesso está aguardando autorização de um administrador da Atalat.');
+        return;
+      }
+      if (found.status === 'bloqueado') {
+        alert('🚫 Seu acesso está temporariamente desativado.');
+        return;
+      }
+      saveSession(found);
+      toast(`Bem-vindo, ${found.nome}!`);
+      view = 'list';
+      render();
       return;
     }
-    if (found.status === 'bloqueado') {
-      alert('🚫 Seu acesso está temporariamente desativado.');
-      return;
-    }
-    saveSession(found);
-    toast(`Bem-vindo, ${found.nome}!`);
-    view = 'list';
-    render();
-    return;
   }
 
   toast('Usuário ou senha incorretos.');
@@ -2670,7 +2822,10 @@ function listHTML() {
           ${currentUser ? `
             <div class="user-pill no-print">
               <span>👤 <strong>${esc(currentUser.nome)}</strong> <span class="muted small">(${esc(currentUser.cargo || 'Equipe')})</span></span>
-              <button class="ghost danger-btn" data-act="logout" style="padding:2px 6px;font-size:12px">Sair</button>
+              <div style="display:inline-flex;gap:4px;align-items:center">
+                <button class="ghost" data-act="open-change-password-modal" style="padding:2px 8px;font-size:12px;font-weight:600" title="Alterar minha senha">🔑 Senha</button>
+                <button class="ghost danger-btn" data-act="logout" style="padding:2px 6px;font-size:12px">Sair</button>
+              </div>
             </div>
           ` : ''}
 
@@ -3443,6 +3598,12 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'open-users-modal') {
     openUsersModal();
+  }
+  else if (a === 'open-change-password-modal') {
+    openChangePasswordModal(el.dataset.uid);
+  }
+  else if (a === 'save-change-password') {
+    handleSaveChangePassword(el.dataset.uid);
   }
   else if (a === 'approve-user') {
     approveUser(el.dataset.uid);
