@@ -1595,6 +1595,16 @@ function initSupabase() {
             }
           })
           .subscribe();
+
+        // Realtime listener for visits & custom forms added by any team member
+        supabaseClient.channel('visitas-realtime-listener')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'visitas' }, () => {
+            syncWithSupabase();
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'tipos_visitas' }, () => {
+            syncWithSupabase();
+          })
+          .subscribe();
       } catch (e) {}
 
     } else {
