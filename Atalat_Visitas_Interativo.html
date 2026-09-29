@@ -1447,7 +1447,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.6.0';
+const APP_VERSION = 'v2.6.1';
 const APP_BUILD_DATE = '29/09/2026';
 
 // STORAGE & CONFIG KEYS
@@ -1482,7 +1482,7 @@ const DEFAULT_USERS = [
 ];
 
 let visits = [], users = [], currentUser = null;
-let usersTableMissing = false;
+let usersTableMissing = false, isSyncing = false;
 let view = 'list', form = {}, type = 'compra', id = null, sectionIdx = 0, report = null, dirty = false;
 let dashboardMonth = new Date().toLocaleDateString('en-CA').slice(0, 7);
 let searchQuery = '', filterType = 'all', filterStatus = 'all', filterRisk = 'all', sortBy = 'date_desc';
@@ -1578,7 +1578,7 @@ function initSupabase() {
       supabaseStatus = 'online';
       syncWithSupabase();
 
-      // Realtime listener for new user registration requests
+      // Realtime listener for new user registration requests (READ ONLY)
       try {
         supabaseClient.channel('usuarios-realtime-listener')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, async () => {
@@ -1589,21 +1589,20 @@ function initSupabase() {
               data.forEach(u => { if (u && u.id) map.set(u.id, u); });
               users = [...map.values()];
               saveUsers();
-              render();
-              if ($('#modal-container')?.innerHTML.includes('Gestão da Equipe')) {
+              if (view === 'list' && $('#modal-container')?.innerHTML.includes('Gestão da Equipe')) {
                 openUsersModal();
               }
             }
           })
           .subscribe();
 
-        // Realtime listener for visits & custom forms added by any team member
+        // Realtime listener for visits & custom forms (READ ONLY - NEVER WRITES TO PREVENT LOOPS)
         supabaseClient.channel('visitas-realtime-listener')
           .on('postgres_changes', { event: '*', schema: 'public', table: 'visitas' }, () => {
-            syncWithSupabase();
+            fetchRemoteData(false);
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'tipos_visitas' }, () => {
-            syncWithSupabase();
+            fetchRemoteData(false);
           })
           .subscribe();
       } catch (e) {}
@@ -1637,10 +1636,10 @@ function logout() {
   render();
 }
 
-async function syncWithSupabase(showNotification = false) {
-  if (!supabaseClient) return;
-  supabaseStatus = 'syncing';
-  updateHeaderUserAndCloud();
+// Read-only fetch from Supabase (NEVER writes back, so it never triggers Realtime write loops)
+async function fetchRemoteData(showNotification = false) {
+  if (!supabaseClient || isSyncing) return;
+  isSyncing = true;
 
   try {
     // 1. Fetch remote users
@@ -1655,48 +1654,79 @@ async function syncWithSupabase(showNotification = false) {
         });
         users = [...map.values()];
         saveUsers();
-      } else if (uErr) {
-        if (uErr.code === 'PGRST205') {
-          usersTableMissing = true;
-          console.warn('Tabela public.usuarios ainda não criada no Supabase.');
-        }
+      } else if (uErr && uErr.code === 'PGRST205') {
+        usersTableMissing = true;
       }
     } catch (errU) {
       console.warn('Erro ao carregar usuários:', errU);
     }
 
     // 2. Fetch remote custom types
-    const { data: remoteTypes, error: tErr } = await supabaseClient.from('tipos_visitas').select('*');
-    if (!tErr && Array.isArray(remoteTypes)) {
-      remoteTypes.forEach(t => {
-        if (t && t.id && Array.isArray(t.sections)) {
-          VISIT_TYPES[t.id] = { id: t.id, label: t.label, short: t.short_label, color: t.color, sections: t.sections };
-        }
-      });
-      saveTypes();
+    try {
+      const { data: remoteTypes, error: tErr } = await supabaseClient.from('tipos_visitas').select('*');
+      if (!tErr && Array.isArray(remoteTypes)) {
+        remoteTypes.forEach(t => {
+          if (t && t.id && Array.isArray(t.sections)) {
+            VISIT_TYPES[t.id] = { id: t.id, label: t.label, short: t.short_label, color: t.color, sections: t.sections };
+          }
+        });
+        saveTypes();
+      }
+    } catch (errT) {
+      console.warn('Erro ao carregar tipos:', errT);
     }
 
     // 3. Fetch remote visits
-    const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
-    if (!vErr && Array.isArray(remoteVisits)) {
-      let localMap = new Map(visits.map(v => [v._id, v]));
-      remoteVisits.forEach(r => {
-        let rec = r.data || {};
-        rec._id = r.id;
-        rec._type = r.type;
-        rec._completed = r.completed;
-        rec._updated = r.updated_at;
-        
-        let local = localMap.get(r.id);
-        if (!local || (r.updated_at && (!local._updated || r.updated_at > local._updated))) {
-          localMap.set(r.id, rec);
+    try {
+      const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
+      if (!vErr && Array.isArray(remoteVisits)) {
+        let localMap = new Map(visits.map(v => [v._id, v]));
+        let hasChanges = false;
+        remoteVisits.forEach(r => {
+          let rec = r.data || {};
+          rec._id = r.id;
+          rec._type = r.type;
+          rec._completed = r.completed;
+          rec._updated = r.updated_at;
+          
+          let local = localMap.get(r.id);
+          if (!local || (r.updated_at && (!local._updated || r.updated_at > local._updated))) {
+            localMap.set(r.id, rec);
+            hasChanges = true;
+          }
+        });
+        if (hasChanges) {
+          visits = [...localMap.values()];
+          persist();
+          if (view === 'list' || view === 'dashboard') {
+            render();
+          }
         }
-      });
-      visits = [...localMap.values()];
-      persist();
+      }
+    } catch (errV) {
+      console.warn('Erro ao carregar visitas:', errV);
     }
 
-    // 4. Upsert local visits back to cloud
+    supabaseStatus = 'online';
+    updateHeaderUserAndCloud();
+    if (showNotification) toast('Dados atualizados com a nuvem!');
+  } catch (err) {
+    console.error('Erro ao buscar dados remotos:', err);
+    supabaseStatus = 'online';
+    updateHeaderUserAndCloud();
+  } finally {
+    isSyncing = false;
+  }
+}
+
+// Full Sync: Push local unsaved visits, then pull remote changes
+async function syncWithSupabase(showNotification = false) {
+  if (!supabaseClient || isSyncing) return;
+  supabaseStatus = 'syncing';
+  updateHeaderUserAndCloud();
+
+  try {
+    // 1. Upload local visits to Supabase once
     if (visits.length > 0) {
       let rowsToUpsert = visits.map(v => ({
         id: v._id,
@@ -1714,17 +1744,12 @@ async function syncWithSupabase(showNotification = false) {
       }));
       await supabaseClient.from('visitas').upsert(rowsToUpsert, { onConflict: 'id' });
     }
-
-    supabaseStatus = 'online';
-    updateHeaderUserAndCloud();
-    if (showNotification) toast('Sincronização com Supabase concluída!');
-    render();
-  } catch (err) {
-    console.error('Erro na sincronização:', err);
-    supabaseStatus = 'online';
-    updateHeaderUserAndCloud();
-    if (showNotification) toast('Erro ao sincronizar: ' + err.message);
+  } catch (errUpsert) {
+    console.warn('Erro ao enviar visitas locais:', errUpsert);
   }
+
+  // 2. Fetch remote data
+  await fetchRemoteData(showNotification);
 }
 
 async function saveVisitToSupabase(rec) {
@@ -3925,8 +3950,8 @@ window.addEventListener('beforeunload', e => {
 window.addEventListener('online', () => {
   supabaseStatus = 'online';
   updateHeaderUserAndCloud();
-  toast('🟢 Conexão restabelecida! Sincronizando visitas com a nuvem...');
-  syncWithSupabase();
+  toast('🟢 Conexão restabelecida! Sincronizando dados com a nuvem...');
+  fetchRemoteData();
 });
 
 window.addEventListener('offline', () => {
@@ -3935,10 +3960,10 @@ window.addEventListener('offline', () => {
   toast('📡 Modo Offline: Seus dados estão seguros no celular e serão sincronizados ao obter sinal.');
 });
 
-// Periodic background sync when online
+// Periodic background sync when online (every 60s)
 setInterval(() => {
-  if (navigator.onLine && supabaseClient && currentUser) {
-    syncWithSupabase();
+  if (navigator.onLine && supabaseClient && currentUser && !isSyncing) {
+    fetchRemoteData();
   }
 }, 60000);
 
