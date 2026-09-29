@@ -9,7 +9,8 @@
   <meta name="apple-mobile-web-app-title" content="Atalat Visitas">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="format-detection" content="telephone=no">
-  <title>Atalat — Gestão Integrada de Visitas a Produtores</title>
+  <link rel="manifest" href="/manifest.json">
+  <title>Laticínios Atalat — Gestão Integrada de Visitas</title>
   <!-- Supabase JS Client SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -3919,6 +3920,36 @@ window.addEventListener('beforeunload', e => {
     e.returnValue = '';
   }
 });
+
+// Automatic Online / Offline Detection & Auto-Sync
+window.addEventListener('online', () => {
+  supabaseStatus = 'online';
+  updateHeaderUserAndCloud();
+  toast('🟢 Conexão restabelecida! Sincronizando visitas com a nuvem...');
+  syncWithSupabase();
+});
+
+window.addEventListener('offline', () => {
+  supabaseStatus = 'offline';
+  updateHeaderUserAndCloud();
+  toast('📡 Modo Offline: Seus dados estão seguros no celular e serão sincronizados ao obter sinal.');
+});
+
+// Periodic background sync when online
+setInterval(() => {
+  if (navigator.onLine && supabaseClient && currentUser) {
+    syncWithSupabase();
+  }
+}, 60000);
+
+// Register Service Worker for Offline PWA support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.warn('SW registration fallback:', err);
+    });
+  });
+}
 
 loadUsers();
 loadTypes();
