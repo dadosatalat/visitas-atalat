@@ -174,9 +174,50 @@
       border-color: var(--primary);
     }
     .cloud-online { background: #E1F7E8; color: #0E5A33; border-color: #A3E3B9; }
-    .cloud-offline { background: #FFF7D6; color: #785200; border-color: #F7E07E; }
+    .cloud-offline { background: #FFF7D6; color: #785200; border-color: #F7E07E; font-weight: 700; }
     .cloud-syncing { background: #E6F0FA; color: #104C82; border-color: #B5D4F5; animation: pulse 1.2s infinite; }
     @keyframes pulse { 0% { opacity: 0.7; } 50% { opacity: 1; } 100% { opacity: 0.7; } }
+
+    /* Offline Alert Banner */
+    .offline-banner {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      color: #92400E;
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin: 14px 0 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .offline-banner .banner-text {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .offline-banner .banner-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+    .offline-banner .sync-btn-small {
+      background: #D97706;
+      color: white;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+    .offline-banner .sync-btn-small:hover {
+      background: #B45309;
+    }
 
     .user-pill {
       display: inline-flex;
@@ -1447,7 +1488,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.6.1';
+const APP_VERSION = 'v2.6.2';
 const APP_BUILD_DATE = '29/09/2026';
 
 // STORAGE & CONFIG KEYS
@@ -1636,12 +1677,37 @@ function logout() {
   render();
 }
 
-// Read-only fetch from Supabase (NEVER writes back, so it never triggers Realtime write loops)
+function offlineBannerHTML() {
+  let isOff = !navigator.onLine || supabaseStatus === 'offline';
+  if (!isOff) return '';
+  let pendingCount = visits.filter(v => v._synced === false).length;
+  return `
+    <div class="offline-banner no-print">
+      <div class="banner-text">
+        <span class="banner-icon">📡</span>
+        <div>
+          <strong>Modo Offline Ativo (Sem Conexão com a Internet)</strong><br>
+          <span>Você pode preencher ou consultar visitas normalmente no campo. Todos os registros estão salvos no aparelho${pendingCount > 0 ? ` (<strong>${pendingCount}</strong> visita(s) aguardando envio)` : ''} e serão sincronizados automaticamente assim que houver sinal.</span>
+        </div>
+      </div>
+      <button class="sync-btn-small" data-act="force-sync" title="Testar conexão e enviar dados agora">🔄 Sincronizar Agora</button>
+    </div>
+  `;
+}
+
+// Read-only fetch from Supabase (pull updates without triggering Realtime loops)
 async function fetchRemoteData(showNotification = false) {
   if (!supabaseClient || isSyncing) return;
+  if (!navigator.onLine) {
+    supabaseStatus = 'offline';
+    updateHeaderUserAndCloud();
+    return;
+  }
   isSyncing = true;
 
   try {
+    let downloadedCount = 0;
+
     // 1. Fetch remote users
     try {
       const { data: remoteUsers, error: uErr } = await supabaseClient.from('usuarios').select('*');
@@ -1688,11 +1754,17 @@ async function fetchRemoteData(showNotification = false) {
           rec._type = r.type;
           rec._completed = r.completed;
           rec._updated = r.updated_at;
+          rec._synced = true;
           
           let local = localMap.get(r.id);
-          if (!local || (r.updated_at && (!local._updated || r.updated_at > local._updated))) {
+          if (!local) {
             localMap.set(r.id, rec);
             hasChanges = true;
+            downloadedCount++;
+          } else if (r.updated_at && (!local._updated || r.updated_at > local._updated)) {
+            localMap.set(r.id, rec);
+            hasChanges = true;
+            downloadedCount++;
           }
         });
         if (hasChanges) {
@@ -1709,24 +1781,50 @@ async function fetchRemoteData(showNotification = false) {
 
     supabaseStatus = 'online';
     updateHeaderUserAndCloud();
-    if (showNotification) toast('Dados atualizados com a nuvem!');
+    if (showNotification) {
+      toast(downloadedCount > 0 ? `✅ Nuvem atualizada: ${downloadedCount} novidade(s) baixada(s)!` : '✅ Dados já estão 100% atualizados com a nuvem!');
+    }
   } catch (err) {
     console.error('Erro ao buscar dados remotos:', err);
-    supabaseStatus = 'online';
+    supabaseStatus = navigator.onLine ? 'online' : 'offline';
     updateHeaderUserAndCloud();
   } finally {
     isSyncing = false;
   }
 }
 
-// Full Sync: Push local unsaved visits, then pull remote changes
+// Full Bidirectional Sync: Uploads local unsaved visits, then pulls remote changes
 async function syncWithSupabase(showNotification = false) {
-  if (!supabaseClient || isSyncing) return;
+  if (isSyncing) return;
+  if (!navigator.onLine) {
+    supabaseStatus = 'offline';
+    updateHeaderUserAndCloud();
+    if (showNotification) toast('📡 Sem conexão com a internet. Os dados continuam gravados com segurança no aparelho.');
+    return;
+  }
+
+  isSyncing = true;
   supabaseStatus = 'syncing';
   updateHeaderUserAndCloud();
 
+  let uploadedCount = 0;
+  let downloadedCount = 0;
+
   try {
-    // 1. Upload local visits to Supabase once
+    if (!supabaseClient) {
+      let saved = JSON.parse(localStorage.getItem(SUPABASE_KEY) || '{}');
+      let url = saved.url || DEFAULT_SUPABASE_URL;
+      let key = saved.key || DEFAULT_SUPABASE_KEY;
+      if (url && key && window.supabase) {
+        supabaseClient = window.supabase.createClient(url, key);
+      }
+    }
+
+    if (!supabaseClient) {
+      throw new Error('Supabase indisponível');
+    }
+
+    // 1. ENVIAR DADOS LOCAIS (UPLOAD)
     if (visits.length > 0) {
       let rowsToUpsert = visits.map(v => ({
         id: v._id,
@@ -1742,20 +1840,113 @@ async function syncWithSupabase(showNotification = false) {
         data: v,
         updated_at: v._updated || new Date().toISOString()
       }));
-      await supabaseClient.from('visitas').upsert(rowsToUpsert, { onConflict: 'id' });
-    }
-  } catch (errUpsert) {
-    console.warn('Erro ao enviar visitas locais:', errUpsert);
-  }
 
-  // 2. Fetch remote data
-  await fetchRemoteData(showNotification);
+      const { error: upErr } = await supabaseClient.from('visitas').upsert(rowsToUpsert, { onConflict: 'id' });
+      if (!upErr) {
+        uploadedCount = visits.filter(v => v._synced === false).length || visits.length;
+        visits.forEach(v => { v._synced = true; });
+        persist();
+      } else {
+        console.warn('Erro ao enviar visitas para o Supabase:', upErr);
+      }
+    }
+
+    // 2. BAIXAR DADOS DA NUVEM (DOWNLOAD)
+    // 2.1 Usuários
+    try {
+      const { data: remoteUsers, error: uErr } = await supabaseClient.from('usuarios').select('*');
+      if (!uErr && Array.isArray(remoteUsers)) {
+        usersTableMissing = false;
+        let map = new Map();
+        DEFAULT_USERS.forEach(u => map.set(u.id, { ...u }));
+        remoteUsers.forEach(u => { if (u && u.id) map.set(u.id, u); });
+        users = [...map.values()];
+        saveUsers();
+      } else if (uErr && uErr.code === 'PGRST205') {
+        usersTableMissing = true;
+      }
+    } catch (errU) {
+      console.warn('Erro ao baixar usuários:', errU);
+    }
+
+    // 2.2 Tipos de Formulários
+    try {
+      const { data: remoteTypes, error: tErr } = await supabaseClient.from('tipos_visitas').select('*');
+      if (!tErr && Array.isArray(remoteTypes)) {
+        remoteTypes.forEach(t => {
+          if (t && t.id && Array.isArray(t.sections)) {
+            VISIT_TYPES[t.id] = { id: t.id, label: t.label, short: t.short_label, color: t.color, sections: t.sections };
+          }
+        });
+        saveTypes();
+      }
+    } catch (errT) {
+      console.warn('Erro ao baixar tipos:', errT);
+    }
+
+    // 2.3 Visitas
+    try {
+      const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
+      if (!vErr && Array.isArray(remoteVisits)) {
+        let localMap = new Map(visits.map(v => [v._id, v]));
+        let hasChanges = false;
+        remoteVisits.forEach(r => {
+          let rec = r.data || {};
+          rec._id = r.id;
+          rec._type = r.type;
+          rec._completed = r.completed;
+          rec._updated = r.updated_at;
+          rec._synced = true;
+          
+          let local = localMap.get(r.id);
+          if (!local) {
+            localMap.set(r.id, rec);
+            hasChanges = true;
+            downloadedCount++;
+          } else if (r.updated_at && (!local._updated || r.updated_at > local._updated)) {
+            localMap.set(r.id, rec);
+            hasChanges = true;
+            downloadedCount++;
+          }
+        });
+        if (hasChanges) {
+          visits = [...localMap.values()];
+          persist();
+        }
+      }
+    } catch (errV) {
+      console.warn('Erro ao baixar visitas:', errV);
+    }
+
+    supabaseStatus = 'online';
+    updateHeaderUserAndCloud();
+    if (view === 'list' || view === 'dashboard') {
+      render();
+    }
+
+    if (showNotification) {
+      toast(`✅ Sincronização Concluída! ${uploadedCount} visita(s) enviada(s), ${downloadedCount} atualizações baixadas da nuvem.`);
+    }
+  } catch (err) {
+    console.error('Erro geral durante sincronização:', err);
+    supabaseStatus = navigator.onLine ? 'online' : 'offline';
+    updateHeaderUserAndCloud();
+    if (showNotification) {
+      toast('⚠️ Falha ao conectar à nuvem. Dados gravados localmente.');
+    }
+  } finally {
+    isSyncing = false;
+  }
 }
 
 async function saveVisitToSupabase(rec) {
-  if (!supabaseClient) return;
+  if (!supabaseClient || !navigator.onLine) {
+    supabaseStatus = 'offline';
+    updateHeaderUserAndCloud();
+    return;
+  }
   try {
-    await supabaseClient.from('visitas').upsert({
+    const { error } = await supabaseClient.from('visitas').upsert({
       id: rec._id,
       type: rec._type,
       producer_name: subject(rec),
@@ -1769,13 +1960,27 @@ async function saveVisitToSupabase(rec) {
       data: rec,
       updated_at: new Date().toISOString()
     }, { onConflict: 'id' });
+
+    if (!error) {
+      rec._synced = true;
+      let idx = visits.findIndex(v => v._id === rec._id);
+      if (idx >= 0) visits[idx]._synced = true;
+      persist();
+      supabaseStatus = 'online';
+      updateHeaderUserAndCloud();
+    } else {
+      supabaseStatus = 'offline';
+      updateHeaderUserAndCloud();
+    }
   } catch (err) {
     console.warn('Erro ao salvar no Supabase:', err);
+    supabaseStatus = 'offline';
+    updateHeaderUserAndCloud();
   }
 }
 
 async function deleteVisitFromSupabase(id) {
-  if (!supabaseClient) return;
+  if (!supabaseClient || !navigator.onLine) return;
   try {
     await supabaseClient.from('visitas').delete().eq('id', id);
   } catch (err) {
@@ -1786,15 +1991,23 @@ async function deleteVisitFromSupabase(id) {
 function updateHeaderUserAndCloud() {
   let el = $('#cloud-status-btn');
   if (!el) return;
-  if (supabaseStatus === 'online') {
+  let isOff = !navigator.onLine || supabaseStatus === 'offline';
+  let pendingCount = visits.filter(v => v._synced === false).length;
+
+  if (supabaseStatus === 'syncing') {
+    el.className = 'cloud-pill cloud-syncing';
+    el.innerHTML = '🔄 Sincronizando Dados...';
+    el.title = 'Enviando e baixando dados com a nuvem Supabase...';
+  } else if (!isOff) {
     el.className = 'cloud-pill cloud-online';
     el.innerHTML = '🟢 Nuvem Sincronizada';
-  } else if (supabaseStatus === 'syncing') {
-    el.className = 'cloud-pill cloud-syncing';
-    el.innerHTML = '🔄 Sincronizando...';
+    el.title = 'Conectado à nuvem Supabase. Clique para sincronizar agora.';
   } else {
     el.className = 'cloud-pill cloud-offline';
-    el.innerHTML = '🟡 Modo Offline';
+    el.innerHTML = pendingCount > 0 
+      ? `🟠 Modo Offline (${pendingCount} pendente${pendingCount > 1 ? 's' : ''})` 
+      : '🟠 Modo Offline (Gravação Local)';
+    el.title = 'Sem conexão com a internet. Seus dados estão salvos no aparelho. Clique para testar conexão.';
   }
 }
 
@@ -2602,6 +2815,7 @@ function save(complete = false) {
       _type: type,
       _completed: complete || form._completed === true,
       _updated: new Date().toISOString(),
+      _synced: false,
     };
     let i = visits.findIndex(v => v._id === id);
     if (i >= 0) visits[i] = rec;
@@ -2609,10 +2823,15 @@ function save(complete = false) {
     persist();
     dirty = false;
     
-    // Asynchronously sync to Supabase
-    saveVisitToSupabase(rec);
+    // Asynchronously sync to Supabase if online
+    if (navigator.onLine && supabaseClient) {
+      saveVisitToSupabase(rec);
+    } else {
+      supabaseStatus = 'offline';
+      updateHeaderUserAndCloud();
+    }
 
-    toast(complete ? 'Visita concluída com sucesso!' : 'Rascunho salvo');
+    toast(complete ? 'Visita concluída e salva no aparelho!' : 'Rascunho salvo no aparelho!');
     return rec;
   } catch (e) {
     toast('Erro ao salvar no navegador');
@@ -3045,7 +3264,7 @@ function listHTML() {
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
           <button id="cloud-status-btn" class="cloud-pill ${supabaseStatus === 'online' ? 'cloud-online' : supabaseStatus === 'syncing' ? 'cloud-syncing' : 'cloud-offline'}" data-act="force-sync" title="Clique para sincronizar dados com a nuvem agora">
-            ${supabaseStatus === 'online' ? '🟢 Nuvem Sincronizada' : supabaseStatus === 'syncing' ? '🔄 Sincronizando...' : '🟡 Modo Offline'}
+            ${supabaseStatus === 'online' ? '🟢 Nuvem Sincronizada' : supabaseStatus === 'syncing' ? '🔄 Sincronizando...' : (visits.filter(v => v._synced === false).length > 0 ? `🟠 Modo Offline (${visits.filter(v => v._synced === false).length} pendente)` : '🟠 Modo Offline (Gravação Local)')}
           </button>
           
           ${currentUser ? `
@@ -3069,6 +3288,9 @@ function listHTML() {
           <button class="primary" data-act="pick" style="padding:11px 20px;font-size:15px">＋ Nova Visita</button>
         </div>
       </div>
+
+      <!-- Offline Status Banner -->
+      ${offlineBannerHTML()}
 
       <!-- Quick KPI Strip -->
       <div class="stats-strip no-print">
@@ -3163,6 +3385,7 @@ function listHTML() {
                     <span class="badge" style="background:${t.color}18;color:${t.color}">${t.short}</span>
                     ${isDraft ? '<span class="badge badge-draft">✏️ Rascunho</span>' : '<span class="badge badge-done">✓ Concluída</span>'}
                     ${r ? `<span class="badge" style="background:${RISK_COLORS[r]}18;color:${RISK_COLORS[r]}">${esc(r.split(' — ')[0])}</span>` : ''}
+                    ${v._synced === false ? '<span class="badge" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A" title="Salva no aparelho. Será enviada para a nuvem quando houver conexão.">💾 No Aparelho</span>' : ''}
                   </div>
                   
                   <div class="name">${esc(subject(v))}${prop ? ` <span class="muted" style="font-size:16px;font-weight:normal">(${esc(prop)})</span>` : ''}</div>
@@ -3418,6 +3641,9 @@ function dashboardHTML() {
           <button class="dark" data-act="print-dashboard">🖨️ Imprimir / Salvar PDF</button>
         </div>
       </div>
+
+      <!-- Offline Status Banner -->
+      ${offlineBannerHTML()}
 
       <div class="brand">ATALAT · DIRETORIA & INTELIGÊNCIA DE CAPTAÇÃO</div>
       <h1>Painel Analítico de Visitas</h1>
@@ -3948,16 +4174,17 @@ window.addEventListener('beforeunload', e => {
 
 // Automatic Online / Offline Detection & Auto-Sync
 window.addEventListener('online', () => {
-  supabaseStatus = 'online';
-  updateHeaderUserAndCloud();
   toast('🟢 Conexão restabelecida! Sincronizando dados com a nuvem...');
-  fetchRemoteData();
+  syncWithSupabase(true);
 });
 
 window.addEventListener('offline', () => {
   supabaseStatus = 'offline';
   updateHeaderUserAndCloud();
-  toast('📡 Modo Offline: Seus dados estão seguros no celular e serão sincronizados ao obter sinal.');
+  toast('📡 Modo Offline Ativo: Dados salvos localmente com segurança.');
+  if (view === 'list' || view === 'dashboard') {
+    render();
+  }
 });
 
 // Periodic background sync when online (every 60s)
