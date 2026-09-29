@@ -2042,7 +2042,7 @@ function openChangePasswordModal(targetUid) {
           <div class="field">
             <label for="new-pass-1">Nova Senha</label>
             <div class="password-input-wrap">
-              <input id="new-pass-1" type="password" placeholder="Mínimo 4 caracteres" autocomplete="new-password" required>
+              <input id="new-pass-1" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password" required>
               <button type="button" class="password-toggle-btn" data-act="toggle-password-visibility" data-target="new-pass-1" title="Visualizar ou ocultar senha">👁️</button>
             </div>
           </div>
@@ -2073,8 +2073,8 @@ async function handleSaveChangePassword(targetUid) {
     toast('Digite a nova senha.');
     return;
   }
-  if (p1.length < 4) {
-    toast('A senha deve ter no mínimo 4 caracteres.');
+  if (p1.length < 8) {
+    toast('A senha deve ter no mínimo 8 caracteres.');
     return;
   }
   if (p1 !== p2) {
@@ -2206,7 +2206,7 @@ function loginHTML() {
             <div class="field">
               <label for="req-pass">Crie sua Senha</label>
               <div class="password-input-wrap">
-                <input id="req-pass" type="password" placeholder="Mínimo 6 caracteres" required>
+                <input id="req-pass" type="password" placeholder="Mínimo 8 caracteres" required>
                 <button type="button" class="password-toggle-btn" data-act="toggle-password-visibility" data-target="req-pass" title="Visualizar ou ocultar senha">👁️</button>
               </div>
             </div>
@@ -2340,8 +2340,8 @@ async function handleRequestAccess() {
     toast('Por favor preencha todos os campos.');
     return;
   }
-  if (pass.length < 4) {
-    toast('A senha deve ter pelo menos 4 caracteres.');
+  if (pass.length < 8) {
+    toast('A senha deve ter pelo menos 8 caracteres.');
     return;
   }
 
