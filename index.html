@@ -1453,9 +1453,35 @@ const APP_BUILD_DATE = '28/09/2026';
 const DEFAULT_SUPABASE_URL = 'https://lfrdwmrkzlrvzvhmqvhz.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcmR3bXJremxydnp2aG1xdmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NTYwMDIsImV4cCI6MjEwNjEzMjAwMn0.AY9UquSlf7gEAet8-ps5SND-E_ETi2ePwLIgeH966CA';
 
-const KEY = 'atalat.visitas.v1', TYPES_KEY = 'atalat.visitas.tipos.v1', SUPABASE_KEY = 'atalat.supabase.config.v1', USER_SESSION_KEY = 'atalat.user.session.v1', CUSTOM_PASSWORDS_KEY = 'atalat.custom.passwords.v1';
+const KEY = 'atalat.visitas.v1', TYPES_KEY = 'atalat.visitas.tipos.v1', SUPABASE_KEY = 'atalat.supabase.config.v1', USER_SESSION_KEY = 'atalat.user.session.v1', CUSTOM_PASSWORDS_KEY = 'atalat.custom.passwords.v1', USERS_KEY = 'atalat.users.v1';
+
+const DEFAULT_USERS = [
+  {
+    id: 'usr_italo_admin',
+    nome: 'Ítalo Silva',
+    usuario: 'italo.pauloip01@gmail.com',
+    senha: '75648054',
+    email_contato: 'italo.pauloip01@gmail.com',
+    cargo: 'Administrador Geral',
+    role: 'admin',
+    status: 'aprovado',
+    autorizado_por: 'Sistema Laticínios Atalat'
+  },
+  {
+    id: 'usr_admin_master',
+    nome: 'Administrador Atalat',
+    usuario: 'admin',
+    senha: 'atalat2026',
+    email_contato: 'admin@atalat.com.br',
+    cargo: 'Diretoria / Gestão',
+    role: 'admin',
+    status: 'aprovado',
+    autorizado_por: 'Sistema Laticínios Atalat'
+  }
+];
 
 let visits = [], users = [], currentUser = null;
+let usersTableMissing = false;
 let view = 'list', form = {}, type = 'compra', id = null, sectionIdx = 0, report = null, dirty = false;
 let dashboardMonth = new Date().toLocaleDateString('en-CA').slice(0, 7);
 let searchQuery = '', filterType = 'all', filterStatus = 'all', filterRisk = 'all', sortBy = 'date_desc';
@@ -1468,6 +1494,28 @@ let supabaseConfig = { url: DEFAULT_SUPABASE_URL, key: DEFAULT_SUPABASE_KEY };
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const esc = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function loadUsers() {
+  try {
+    let saved = JSON.parse(localStorage.getItem(USERS_KEY) || '[]');
+    let map = new Map();
+    DEFAULT_USERS.forEach(u => map.set(u.id, { ...u }));
+    if (Array.isArray(saved)) {
+      saved.forEach(u => {
+        if (u && u.id) map.set(u.id, u);
+      });
+    }
+    users = [...map.values()];
+  } catch (e) {
+    users = DEFAULT_USERS.map(u => ({ ...u }));
+  }
+}
+
+function saveUsers() {
+  try {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  } catch (e) {}
+}
 
 function getCustomPasswords() {
   try {
@@ -1487,6 +1535,7 @@ async function updatePassword(targetUserId, newPassword) {
     if (targetUser.email_contato) pMap[targetUser.email_contato] = newPassword;
     targetUser.senha = newPassword;
     targetUser.updated_at = new Date().toISOString();
+    saveUsers();
   }
   
   if (targetUserId === 'usr_italo_admin') {
@@ -1527,6 +1576,27 @@ function initSupabase() {
       supabaseClient = window.supabase.createClient(url, key);
       supabaseStatus = 'online';
       syncWithSupabase();
+
+      // Realtime listener for new user registration requests
+      try {
+        supabaseClient.channel('usuarios-realtime-listener')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, async () => {
+            const { data } = await supabaseClient.from('usuarios').select('*').order('created_at', { ascending: false });
+            if (data && Array.isArray(data)) {
+              let map = new Map();
+              DEFAULT_USERS.forEach(u => map.set(u.id, { ...u }));
+              data.forEach(u => { if (u && u.id) map.set(u.id, u); });
+              users = [...map.values()];
+              saveUsers();
+              render();
+              if ($('#modal-container')?.innerHTML.includes('Gestão da Equipe')) {
+                openUsersModal();
+              }
+            }
+          })
+          .subscribe();
+      } catch (e) {}
+
     } else {
       supabaseStatus = 'offline';
     }
@@ -1563,9 +1633,25 @@ async function syncWithSupabase(showNotification = false) {
 
   try {
     // 1. Fetch remote users
-    const { data: remoteUsers, error: uErr } = await supabaseClient.from('usuarios').select('*');
-    if (!uErr && Array.isArray(remoteUsers)) {
-      users = remoteUsers;
+    try {
+      const { data: remoteUsers, error: uErr } = await supabaseClient.from('usuarios').select('*');
+      if (!uErr && Array.isArray(remoteUsers)) {
+        usersTableMissing = false;
+        let map = new Map();
+        DEFAULT_USERS.forEach(u => map.set(u.id, { ...u }));
+        remoteUsers.forEach(u => {
+          if (u && u.id) map.set(u.id, u);
+        });
+        users = [...map.values()];
+        saveUsers();
+      } else if (uErr) {
+        if (uErr.code === 'PGRST205') {
+          usersTableMissing = true;
+          console.warn('Tabela public.usuarios ainda não criada no Supabase.');
+        }
+      }
+    } catch (errU) {
+      console.warn('Erro ao carregar usuários:', errU);
     }
 
     // 2. Fetch remote custom types
@@ -1676,14 +1762,89 @@ function updateHeaderUserAndCloud() {
   }
 }
 
+const USERS_SQL_CODE = `-- SCRIPT DE ATIVAÇÃO DA TABELA DE USUÁRIOS NO SUPABASE (EXECUTE NO SQL EDITOR)
+CREATE TABLE IF NOT EXISTS public.usuarios (
+  id TEXT PRIMARY KEY,
+  nome TEXT NOT NULL,
+  usuario TEXT UNIQUE NOT NULL,
+  senha TEXT NOT NULL,
+  email_contato TEXT,
+  cargo TEXT DEFAULT 'Comprador / Técnico',
+  role TEXT DEFAULT 'membro',
+  status TEXT DEFAULT 'pendente',
+  autorizado_por TEXT,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_usuarios_usuario ON public.usuarios(usuario);
+CREATE INDEX IF NOT EXISTS idx_usuarios_status ON public.usuarios(status);
+
+ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir leitura pública de usuarios" ON public.usuarios;
+CREATE POLICY "Permitir leitura pública de usuarios" ON public.usuarios FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir inserção pública de usuarios" ON public.usuarios;
+CREATE POLICY "Permitir inserção pública de usuarios" ON public.usuarios FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir atualização pública de usuarios" ON public.usuarios;
+CREATE POLICY "Permitir atualização pública de usuarios" ON public.usuarios FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Permitir exclusão pública de usuarios" ON public.usuarios;
+CREATE POLICY "Permitir exclusão pública de usuarios" ON public.usuarios FOR DELETE USING (true);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios;
+
+INSERT INTO public.usuarios (id, nome, usuario, senha, email_contato, cargo, role, status, autorizado_por)
+VALUES 
+(
+  'usr_italo_admin',
+  'Ítalo Silva',
+  'italo.pauloip01@gmail.com',
+  '75648054',
+  'italo.pauloip01@gmail.com',
+  'Administrador Geral',
+  'admin',
+  'aprovado',
+  'Sistema Laticínios Atalat'
+),
+(
+  'usr_admin_master',
+  'Administrador Atalat',
+  'admin',
+  'atalat2026',
+  'admin@atalat.com.br',
+  'Diretoria / Gestão',
+  'admin',
+  'aprovado',
+  'Sistema Laticínios Atalat'
+)
+ON CONFLICT (usuario) DO NOTHING;`;
+
 // MEMBER APPROVALS MODAL
 async function openUsersModal() {
   let modal = $('#modal-container');
   
   // Refresh users from Supabase if connected
   if (supabaseClient) {
-    const { data } = await supabaseClient.from('usuarios').select('*').order('created_at', { ascending: false });
-    if (data) users = data;
+    try {
+      const { data, error } = await supabaseClient.from('usuarios').select('*').order('created_at', { ascending: false });
+      if (error && error.code === 'PGRST205') {
+        usersTableMissing = true;
+      } else if (data && Array.isArray(data)) {
+        usersTableMissing = false;
+        let map = new Map();
+        DEFAULT_USERS.forEach(u => map.set(u.id, { ...u }));
+        data.forEach(u => {
+          if (u && u.id) map.set(u.id, u);
+        });
+        users = [...map.values()];
+        saveUsers();
+      }
+    } catch (e) {
+      console.warn('Erro ao atualizar usuários:', e);
+    }
   }
   
   let pending = users.filter(u => u.status === 'pendente');
@@ -1698,6 +1859,22 @@ async function openUsersModal() {
           <button class="ghost" data-act="close-modal">✕</button>
         </div>
         <p class="muted small">Autorize novos compradores e técnicos de campo, gerencie cargos ou redefina senhas.</p>
+
+        <!-- If Table is Missing from Supabase Warning Banner -->
+        ${usersTableMissing ? `
+          <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:14px;margin:16px 0;font-size:13px;color:#92400E">
+            <div style="font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px">
+              ⚠️ Tabela de Usuários ainda não criada no seu Supabase!
+            </div>
+            <p style="margin:0 0 10px;font-size:12px;line-height:1.4">
+              Por isso, as novas solicitações feitas por outros colaboradores no celular ainda não chegam à nuvem. Para habilitar agora, execute o script SQL abaixo no Supabase.
+            </p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="primary" data-act="copy-users-sql" style="padding:6px 12px;font-size:12px">📋 Copiar Script SQL de Usuários</button>
+              <a href="https://supabase.com/dashboard/project/lfrdwmrkzlrvzvhmqvhz/sql" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;padding:6px 12px;background:#059669;color:white;text-decoration:none;border-radius:var(--radius-xs);font-size:12px;font-weight:600">🚀 Abrir Supabase SQL Editor ↗</a>
+            </div>
+          </div>
+        ` : ''}
 
         <!-- Pending Section -->
         <h3 style="margin-top:20px;color:var(--amber)">⏳ Solicitações Pendentes de Autorização (${pending.length})</h3>
@@ -1916,20 +2093,26 @@ async function approveUser(uid) {
   u.status = 'aprovado';
   u.autorizado_por = currentUser ? currentUser.nome : 'Administrador Atalat';
   u.updated_at = new Date().toISOString();
+  saveUsers();
   
   if (supabaseClient) {
-    await supabaseClient.from('usuarios').upsert(u);
+    try {
+      await supabaseClient.from('usuarios').upsert(u);
+    } catch (e) {}
   }
   toast(`Acesso autorizado para ${u.nome}!`);
   openUsersModal();
 }
 
 async function rejectUser(uid) {
-  if (!confirm('Recusar e remover este pedido de cadastro?')) return;
+  if (!confirm('Recusar e remover este cadastro?')) return;
   if (supabaseClient) {
-    await supabaseClient.from('usuarios').delete().eq('id', uid);
+    try {
+      await supabaseClient.from('usuarios').delete().eq('id', uid);
+    } catch (e) {}
   }
   users = users.filter(x => x.id !== uid);
+  saveUsers();
   toast('Solicitação recusada.');
   openUsersModal();
 }
@@ -1939,8 +2122,11 @@ async function blockUser(uid) {
   if (!u) return;
   if (!confirm(`Bloquear o acesso de ${u.nome}?`)) return;
   u.status = 'bloqueado';
+  saveUsers();
   if (supabaseClient) {
-    await supabaseClient.from('usuarios').upsert(u);
+    try {
+      await supabaseClient.from('usuarios').upsert(u);
+    } catch (e) {}
   }
   toast(`Usuário ${u.nome} bloqueado.`);
   openUsersModal();
@@ -1950,10 +2136,15 @@ async function toggleAdmin(uid) {
   let u = users.find(x => x.id === uid);
   if (!u) return;
   u.role = 'admin';
+  saveUsers();
   if (supabaseClient) {
-    await supabaseClient.from('usuarios').upsert(u);
+    try {
+      await supabaseClient.from('usuarios').upsert(u);
+    } catch (e) {}
   }
   toast(`${u.nome} agora é Administrador!`);
+  openUsersModal();
+}
   openUsersModal();
 }
 
@@ -2157,7 +2348,7 @@ async function handleRequestAccess() {
   }
 
   let newReq = {
-    id: 'usr_' + Date.now().toString(36),
+    id: 'usr_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4),
     nome: nome,
     usuario: user,
     senha: pass,
@@ -2180,8 +2371,12 @@ async function handleRequestAccess() {
     }
   }
 
-  users.push(newReq);
-  alert('✅ Solicitação enviada com sucesso!\n\nSeu cadastro foi encaminhado para a equipe administrativa da Atalat. Assim que for autorizado, você poderá fazer o login normalmente.');
+  let map = new Map(users.map(u => [u.id, u]));
+  map.set(newReq.id, newReq);
+  users = [...map.values()];
+  saveUsers();
+
+  alert('✅ Solicitação enviada com sucesso!\n\nSeu cadastro foi encaminhado para a equipe administrativa da Laticínios Atalat. Assim que for autorizado, você poderá fazer o login normalmente.');
   authTab = 'login';
   render();
 }
@@ -3687,6 +3882,17 @@ document.addEventListener('click', async e => {
   else if (a === 'capture-gps') {
     captureGPS(el.dataset.field);
   }
+  else if (a === 'copy-users-sql') {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(USERS_SQL_CODE).then(() => {
+        toast('📋 Script SQL copiado! Cole no SQL Editor do Supabase e clique em RUN.');
+      }).catch(() => {
+        prompt('Copie o código SQL abaixo:', USERS_SQL_CODE);
+      });
+    } else {
+      prompt('Copie o código SQL abaixo:', USERS_SQL_CODE);
+    }
+  }
   else if (a === 'toggle-password-visibility') {
     let targetId = el.dataset.target;
     let input = $('#' + targetId);
@@ -3706,6 +3912,7 @@ window.addEventListener('beforeunload', e => {
   }
 });
 
+loadUsers();
 loadTypes();
 load();
 loadSession();
