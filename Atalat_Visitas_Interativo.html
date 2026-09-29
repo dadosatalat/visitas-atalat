@@ -767,46 +767,27 @@
     
     /* Dashboard Layout */
     .dashboard {
-      max-width: 1050px;
-    }
-    .metrics {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 14px;
-      margin: 18px 0;
-    }
-    .metric, .panel {
+    .panel {
       background: white;
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      padding: 20px;
+      padding: 18px 20px;
       box-shadow: var(--shadow-sm);
+      margin-bottom: 16px;
     }
-    .metric strong {
-      display: block;
-      color: var(--primary);
-      font-size: 28px;
-      font-weight: 700;
-      font-family: Georgia, serif;
-    }
-    .metric span {
-      display: block;
-      font-weight: 600;
-      margin-top: 5px;
-      font-size: 14px;
+    .panel h2 {
+      font-size: 18px;
+      margin: 0 0 14px;
       color: var(--ink);
+      font-weight: 700;
+      border-bottom: 1px solid var(--line-light);
+      padding-bottom: 8px;
     }
-    .metric small {
-      display: block;
-      color: var(--muted);
-      margin-top: 5px;
-      font-size: 12px;
-    }
-    .panel { margin: 18px 0; }
     .two-col {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 18px;
+      gap: 16px;
+      margin-bottom: 6px;
     }
     
     /* Charts */
@@ -1409,98 +1390,28 @@
       }
 
       /* Dashboard on Mobile */
-      .wrap.dashboard { padding: 14px 10px 50px; }
-      .dashboard .top {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-        margin-bottom: 12px;
-      }
-      .dashboard h1 {
-        font-size: 21px;
-        margin: 4px 0 12px;
-        line-height: 1.25;
-      }
-      .dashboard .brand {
-        font-size: 11px;
-      }
-      .two-col {
-        grid-template-columns: 1fr !important;
-        gap: 12px;
-      }
-      .panel {
-        padding: 14px 12px !important;
-        border-radius: 12px;
-        margin: 0 0 12px 0;
-        overflow: hidden;
-      }
-      .panel h2 {
-        font-size: 15.5px;
-        margin: 0 0 10px;
-        line-height: 1.3;
-      }
-      .metrics {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 8px !important;
-        margin: 12px 0 14px;
-      }
-      .metric {
-        padding: 10px 8px !important;
-        border-radius: 10px;
-        min-height: 84px;
-      }
-      .metric strong {
-        font-size: 17px !important;
-        line-height: 1.2;
-        overflow-wrap: break-word;
-        word-break: break-word;
-      }
-      .metric span {
-        font-size: 11.5px !important;
-        line-height: 1.3;
-        margin-top: 4px;
-      }
-      .metric small {
-        font-size: 10.5px !important;
-        line-height: 1.2;
-        margin-top: 4px;
-      }
-      .chart-container {
-        flex-direction: column !important;
-        align-items: center;
-        gap: 14px;
-        padding: 6px 0;
-      }
-      .chart-svg {
-        width: 140px;
-        height: 140px;
-      }
-      .chart-legend {
-        width: 100%;
-        font-size: 12px;
-        gap: 6px;
-      }
       .dashboard-top-actions {
         display: grid !important;
         grid-template-columns: 1fr 1fr;
         gap: 8px !important;
         width: 100%;
+        margin-top: 6px;
       }
       .dashboard-top-actions button {
         width: 100%;
-        min-height: 42px;
-        font-size: 12.5px;
+        min-height: 44px;
+        font-size: 13px;
         font-weight: 600;
         border-radius: 8px;
-        padding: 8px 4px;
+        padding: 8px 6px;
         text-align: center;
       }
       .dashboard-period-toolbar {
+        display: flex;
         flex-direction: column !important;
         align-items: stretch !important;
         gap: 10px !important;
-        padding: 12px 10px !important;
-        margin-bottom: 12px;
+        width: 100%;
       }
       .dashboard-period-toolbar .period-label {
         display: flex !important;
@@ -1509,6 +1420,7 @@
         gap: 4px;
         width: 100%;
         font-size: 13px;
+        font-weight: 600;
       }
       .dashboard-period-toolbar .period-label input {
         min-height: 44px;
@@ -1531,8 +1443,40 @@
         padding: 8px 4px;
         text-align: center;
       }
+      .two-col {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+      .panel {
+        padding: 14px !important;
+        border-radius: 12px !important;
+        margin-bottom: 12px !important;
+      }
+      .panel h2 {
+        font-size: 16px;
+        margin: 0 0 12px;
+      }
+      .chart-container {
+        flex-direction: column !important;
+        align-items: center;
+        gap: 14px;
+        padding: 4px 0;
+      }
+      .chart-svg {
+        width: 130px;
+        height: 130px;
+      }
+      .chart-legend {
+        width: 100%;
+        font-size: 12.5px;
+        gap: 6px;
+      }
       .table-scroll-hint {
         display: block;
+        font-size: 11px;
+        color: var(--muted);
+        margin-top: 6px;
+        text-align: right;
       }
 
       /* Report on Mobile */
@@ -1821,7 +1765,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.6.4';
+const APP_VERSION = 'v2.6.5';
 const APP_BUILD_DATE = '29/09/2026';
 
 // STORAGE & CONFIG KEYS
@@ -3967,10 +3911,18 @@ function dashboardHTML() {
 
   return `
     <div class="wrap dashboard">
-      <div class="top no-print">
-        <button class="ghost" data-act="all" style="align-self:flex-start">← Voltar para a lista</button>
-        <div class="dashboard-top-actions">
-          <button data-act="export-excel">📥 Exportar (Excel)</button>
+      <div class="top">
+        <div>
+          <button class="ghost" data-act="all" style="padding-left:0;margin-bottom:8px;font-size:13.5px;font-weight:600">← Voltar à Lista</button>
+          <div class="brand">LATICÍNIOS ATALAT · DIRETORIA</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <h1>Painel Analítico de Visitas</h1>
+            <span class="badge" style="background:#EBF3FB;color:var(--primary);font-size:11px;padding:3px 8px;border:1px solid #D0E1F3">${APP_VERSION}</span>
+          </div>
+          <p class="muted" style="margin:4px 0 0">Indicadores consolidados, acompanhamentos prioritários e inteligência de rotas.</p>
+        </div>
+        <div class="dashboard-top-actions no-print">
+          <button data-act="export-excel">📥 Exportar Excel</button>
           <button class="dark" data-act="print-dashboard">🖨️ Imprimir / PDF</button>
         </div>
       </div>
@@ -3978,33 +3930,55 @@ function dashboardHTML() {
       <!-- Offline Status Banner -->
       ${offlineBannerHTML()}
 
-      <div class="brand">ATALAT · DIRETORIA & INTELIGÊNCIA DE CAPTAÇÃO</div>
-      <h1>Painel Analítico de Visitas</h1>
-
-      <div class="dashboard-period-toolbar no-print">
-        <label for="dashboard-month" class="period-label">
-          <span>Mês de referência:</span>
-          <input id="dashboard-month" type="month" value="${isAllTime ? '' : esc(dashboardMonth)}" ${isAllTime ? 'disabled' : ''}>
-        </label>
-        <div class="dashboard-period-btns">
-          <button class="${!isAllTime && dashboardMonth === new Date().toLocaleDateString('en-CA').slice(0, 7) ? 'primary' : ''}" data-act="dash-period" data-period="current">Mês Atual</button>
-          <button class="${isAllTime ? 'primary' : ''}" data-act="dash-period" data-period="all">🌐 Todo o Histórico</button>
+      <div class="filter-bar no-print" style="margin-bottom:18px">
+        <div class="dashboard-period-toolbar">
+          <label for="dashboard-month" class="period-label">
+            <span>Mês de referência:</span>
+            <input id="dashboard-month" type="month" value="${isAllTime ? '' : esc(dashboardMonth)}" ${isAllTime ? 'disabled' : ''}>
+          </label>
+          <div class="dashboard-period-btns">
+            <button class="${!isAllTime && dashboardMonth === new Date().toLocaleDateString('en-CA').slice(0, 7) ? 'primary' : ''}" data-act="dash-period" data-period="current">Mês Atual</button>
+            <button class="${isAllTime ? 'primary' : ''}" data-act="dash-period" data-period="all">🌐 Todo o Histórico</button>
+          </div>
         </div>
+        <p class="muted small" style="margin:8px 0 0">
+          Período selecionado: <strong>${isAllTime ? 'Todo o histórico cadastrado' : dashboardMonth.split('-').reverse().join('/')}</strong>. 
+          Indicadores calculados com base nas datas das visitas e formulários preenchidos.
+        </p>
       </div>
 
-      <p class="muted small" style="margin-top:0">
-        Período selecionado: <strong>${isAllTime ? 'Todo o histórico cadastrado' : dashboardMonth.split('-').reverse().join('/')}</strong>. 
-        Indicadores calculados com base nas datas das visitas e formulários preenchidos.
-      </p>
-
       <!-- KPI Grid -->
-      <div class="metrics">
-        ${metric('Visitas Concluídas', done.length, `${draft} rascunhos em andamento`)}
-        ${metric('Volume Provável de Entrada', fmt(potential) + ' L/dia', `~${fmt(potential * 30.5)} L/mês`)}
-        ${metric('Volume em Defesa', fmt(dv) + ' L/dia', `${def.length} ações de retenção`)}
-        ${metric('Volume Perdido', fmt(lv) + ' L/dia', `${loss.length} saídas registradas`)}
-        ${metric('Acordos Comerciais', com.filter(v => v.m10 === 'Acordo fechado').length, `${com.length} visitas comerciais`)}
-        ${metric('Risco Alto/Crítico', risks.length, `Entre ${rel.length} visitas de relacionamento`)}
+      <div class="stats-strip no-print">
+        <div class="stat-card">
+          <span>Visitas Concluídas</span>
+          <strong>${done.length}</strong>
+          <small class="muted">${draft} rascunhos em andamento</small>
+        </div>
+        <div class="stat-card">
+          <span>Volume de Entrada</span>
+          <strong style="color:var(--primary)">${fmt(potential)} <span style="font-size:13px;font-weight:normal">L/dia</span></strong>
+          <small class="muted">~${fmt(potential * 30.5)} L/mês</small>
+        </div>
+        <div class="stat-card">
+          <span>Volume em Defesa</span>
+          <strong style="color:var(--amber)">${fmt(dv)} <span style="font-size:13px;font-weight:normal">L/dia</span></strong>
+          <small class="muted">${def.length} retenções ativas</small>
+        </div>
+        <div class="stat-card">
+          <span>Volume Perdido</span>
+          <strong style="color:var(--danger)">${fmt(lv)} <span style="font-size:13px;font-weight:normal">L/dia</span></strong>
+          <small class="muted">${loss.length} saídas registradas</small>
+        </div>
+        <div class="stat-card">
+          <span>Acordos Comerciais</span>
+          <strong style="color:var(--primary)">${com.filter(v => v.m10 === 'Acordo fechado').length}</strong>
+          <small class="muted">De ${com.length} comerciais</small>
+        </div>
+        <div class="stat-card">
+          <span>Risco Alto / Crítico</span>
+          <strong style="color:var(--danger)">${risks.length}</strong>
+          <small class="muted">De ${rel.length} relacionamentos</small>
+        </div>
       </div>
 
       <!-- Charts & Visual Analytics -->
