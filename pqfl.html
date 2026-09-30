@@ -420,20 +420,35 @@
 
     /* PRINT LAYOUT */
     @media print {
+      @page {
+        margin: 10mm 12mm;
+        size: A4 portrait;
+      }
       body {
-        padding: 0;
-        background: white;
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       .no-print {
         display: none !important;
       }
       .card {
-        border: none;
-        box-shadow: none;
-        padding: 0;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
       }
       .container {
-        max-width: 100%;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .report-paper {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        max-width: 100% !important;
       }
     }
   </style>
@@ -727,7 +742,7 @@
         <button class="nav-btn" onclick="switchView('list')">← Voltar à Lista de Diagnósticos</button>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn-main btn-secondary" onclick="editCurrentDiagnostic()" style="padding:9px 18px;font-size:13px;border-color:#cbd5e1">✏️ Editar este Diagnóstico</button>
-          <button class="btn-main btn-primary" onclick="window.print()" style="padding:9px 20px;font-size:13px">🖨️ Imprimir / Salvar PDF</button>
+          <button class="btn-main btn-primary" onclick="exportPdf(currentId)" style="padding:9px 20px;font-size:13px;background:#15803d;border-color:#15803d">📄 Exportar / Salvar PDF</button>
         </div>
       </div>
 
@@ -856,6 +871,10 @@
 
       document.getElementById('tab-list-btn').className = 'nav-btn' + (viewName === 'list' ? ' active' : '');
       document.getElementById('tab-new-btn').className = 'nav-btn' + (viewName === 'form' ? ' active' : '');
+
+      if (viewName !== 'report') {
+        document.title = 'PQFL - Plano de Qualificação de Fornecedores de Leite | Atalat';
+      }
 
       if (viewName === 'list') renderList();
       window.scrollTo(0, 0);
@@ -1322,7 +1341,8 @@
                 (d.antibioticos ? `<span class="badge" style="background:#f1f5f9;color:#334155">${d.antibioticos}</span>` : `<span style="color:var(--text-muted);font-size:12px">Nenhum</span>`)}
             </td>
             <td style="text-align:right;white-space:nowrap">
-              <button class="nav-btn" style="background:#eff6ff;color:var(--primary);border-color:#bfdbfe;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="showReport('${d.id}')" title="Visualizar e Imprimir Relatório Oficial">👁️ Visualizar</button>
+              <button class="nav-btn" style="background:#eff6ff;color:var(--primary);border-color:#bfdbfe;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="showReport('${d.id}')" title="Visualizar Relatório Oficial">👁️ Visualizar</button>
+              <button class="nav-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="exportPdf('${d.id}')" title="Exportar Relatório Oficial em PDF">📄 PDF</button>
               <button class="nav-btn" style="background:#f8fafc;color:#334155;border-color:#cbd5e1;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="editDiagnostic('${d.id}')" title="Editar dados e checklist deste diagnóstico">✏️ Editar</button>
               <button class="nav-btn" style="color:#dc2626;border-color:#fecaca;padding:6px 10px;font-size:12.5px" onclick="deleteDiagnostic('${d.id}')" title="Excluir Diagnóstico">🗑️</button>
             </td>
@@ -1337,6 +1357,11 @@
       if (!d) return alert('Diagnóstico não encontrado!');
 
       currentId = d.id;
+
+      // Definir nome de arquivo limpo ao exportar / salvar em PDF
+      let safeProd = (d.produtor || 'Produtor').trim().replace(/[^a-zA-Z0-9À-ÿ]/g, '_');
+      let safeData = (d.data || '').trim();
+      document.title = `PQFL_${safeProd}_${safeData}`;
 
       // Calcular indicadores zootécnicos
       let vl = parseFloat(d.vl) || 0;
@@ -1371,7 +1396,7 @@
 
       // Montar HTML do Relatório Oficial da Atalat
       let html = `
-        <div style="background:white;padding:32px;border-radius:12px;border:1px solid #cbd5e1;box-shadow:0 4px 16px rgba(0,0,0,0.06);max-width:960px;margin:0 auto">
+        <div class="report-paper" style="background:white;padding:32px;border-radius:12px;border:1px solid #cbd5e1;box-shadow:0 4px 16px rgba(0,0,0,0.06);max-width:960px;margin:0 auto">
           <!-- CABEÇALHO OFICIAL ATALAT -->
           <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1e3a8a;padding-bottom:16px;margin-bottom:20px;flex-wrap:wrap;gap:12px">
             <div style="display:flex;align-items:center;gap:14px">
@@ -1571,6 +1596,15 @@
 
       document.getElementById('report-printable-content').innerHTML = html;
       switchView('report');
+    }
+
+    function exportPdf(id) {
+      let targetId = id || currentId;
+      if (!targetId) return;
+      showReport(targetId);
+      setTimeout(() => {
+        window.print();
+      }, 350);
     }
 
     function editCurrentDiagnostic() {
