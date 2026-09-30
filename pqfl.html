@@ -203,6 +203,49 @@
       background: var(--primary-subtle);
     }
 
+    /* ANTIBIOTIC QUICK CHIPS */
+    .ab-chips-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .ab-chip {
+      background: white;
+      border: 1px solid #facc15;
+      color: #854d0e;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      user-select: none;
+    }
+
+    .ab-chip:hover {
+      background: #fef08a;
+      border-color: #eab308;
+    }
+
+    .ab-chip.active {
+      background: #eab308;
+      color: #713f12;
+      border-color: #ca8a04;
+      font-weight: 800;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .ab-chip.none-chip.active {
+      background: #94a3b8;
+      color: white;
+      border-color: #64748b;
+    }
+
     /* QUESTION CHECKLIST */
     .block-card {
       border-left: 5px solid var(--primary);
@@ -606,10 +649,14 @@
 
       <!-- SEÇÃO 3: ANTIBIÓTICOS E OBSERVAÇÕES -->
       <div class="card" style="background:#fefce8;border-color:#fef08a">
-        <div style="font-weight:700;color:#854d0e;margin-bottom:8px;font-size:14px">3. ANTIBIÓTICOS E OBSERVAÇÕES DE CAMPO</div>
-        <div class="form-group" style="margin-bottom:12px">
+        <div class="form-group" style="margin-bottom:14px">
           <label style="color:#854d0e">Antibióticos e medicamentos utilizados na propriedade</label>
-          <input id="f-antibioticos" type="text" placeholder="Ex: Terramicina, Penicilina, Gentamicina..." style="border-color:#fde047">
+          <input id="f-antibioticos" type="text" placeholder="Ex: Terramicina, Penicilina, Gentamicina..." style="border-color:#fde047;font-weight:600" oninput="updateAntibioticChipUI()">
+          
+          <div style="font-size:11.5px;color:#854d0e;margin-top:6px;font-weight:600">⚡ Clique nos antibióticos mais comuns para preenchimento rápido (pode marcar múltiplos):</div>
+          <div class="ab-chips-container" id="ab-chips-box">
+            <!-- Chips gerados dinamicamente via JS -->
+          </div>
         </div>
         <div class="form-group">
           <label style="color:#854d0e">Outras recomendações / Anotações do técnico</label>
@@ -851,6 +898,70 @@
       });
     }
 
+    // LISTA DOS ANTIBIÓTICOS MAIS COMUNS EM VACAS DE LEITE
+    const COMMON_ANTIBIOTICS = [
+      { name: 'Terramicina', label: 'Terramicina (Oxitetraciclina)' },
+      { name: 'Penicilina / Benzetacil', label: 'Penicilina / Benzetacil' },
+      { name: 'Agrovet', label: 'Agrovet (Estreptomicina)' },
+      { name: 'Ceftiofur', label: 'Ceftiofur' },
+      { name: 'Gentamicina', label: 'Gentamicina' },
+      { name: 'Enrofloxacino', label: 'Enrofloxacino (Baytril)' },
+      { name: 'Pomada de Mastite (Cloxacilina)', label: 'Pomada Mastite (Cloxacilina)' },
+      { name: 'Sulfas + Trimetoprim', label: 'Sulfas + Trimetoprim' },
+      { name: 'Ampicilina', label: 'Ampicilina' },
+      { name: 'Nenhum no momento', label: 'Nenhum no momento', isNone: true }
+    ];
+
+    function renderAntibioticChips() {
+      const box = document.getElementById('ab-chips-box');
+      if (!box) return;
+      box.innerHTML = COMMON_ANTIBIOTICS.map(ab => `
+        <button type="button" class="ab-chip ${ab.isNone ? 'none-chip' : ''}" data-name="${ab.name}" onclick="toggleAntibioticChip('${ab.name}', ${!!ab.isNone})">
+          ${ab.isNone ? '❌' : '💊'} ${ab.label}
+        </button>
+      `).join('');
+      updateAntibioticChipUI();
+    }
+
+    function toggleAntibioticChip(name, isNone) {
+      let input = document.getElementById('f-antibioticos');
+      let val = (input.value || '').trim();
+      let current = val ? val.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+      if (isNone) {
+        if (current.includes('Nenhum no momento') || current.includes('Nenhum')) {
+          input.value = '';
+        } else {
+          input.value = 'Nenhum no momento';
+        }
+      } else {
+        current = current.filter(x => x !== 'Nenhum no momento' && x !== 'Nenhum');
+        let idx = current.indexOf(name);
+        if (idx >= 0) {
+          current.splice(idx, 1);
+        } else {
+          current.push(name);
+        }
+        input.value = current.join(', ');
+      }
+      updateAntibioticChipUI();
+    }
+
+    function updateAntibioticChipUI() {
+      let input = document.getElementById('f-antibioticos');
+      if (!input) return;
+      let val = (input.value || '').toLowerCase();
+
+      document.querySelectorAll('.ab-chip').forEach(btn => {
+        let name = btn.dataset.name.toLowerCase();
+        if (name.includes('nenhum')) {
+          btn.classList.toggle('active', val.includes('nenhum'));
+        } else {
+          btn.classList.toggle('active', val.includes(name) || (name.includes('terramicina') && val.includes('terramicina')));
+        }
+      });
+    }
+
     function newDiagnostic() {
       currentId = 'pqfl_' + Date.now();
       currentAnswers = {};
@@ -889,6 +1000,7 @@
         });
       });
       updateScores();
+      updateAntibioticChipUI();
 
       switchView('form');
     }
@@ -935,6 +1047,7 @@
         });
       });
       updateScores();
+      updateAntibioticChipUI();
 
       switchView('form');
     }
@@ -1319,6 +1432,7 @@
     // INICIALIZAÇÃO
     window.addEventListener('DOMContentLoaded', () => {
       buildQuestionBlocks();
+      renderAntibioticChips();
       renderList();
     });
   </script>
