@@ -1,9 +1,10 @@
 // Service Worker para Atalat Visitas (Offline-First)
-const CACHE_NAME = 'atalat-visitas-v2.6.5';
+const CACHE_NAME = 'atalat-visitas-v2.7.0';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/relatorio_pqfl_manoel_messias.html',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
