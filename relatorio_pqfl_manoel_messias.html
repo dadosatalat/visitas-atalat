@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório de Diagnóstico e PQFL - Manoel Messias Barbosa | Atalat</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #3b82f6;
+      --secondary: #0f172a;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --conforme: #16a34a;
+      --nao-conforme: #dc2626;
+      --alerta: #d97706;
+      --na: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--card-bg);
+      padding: 36px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 20px;
+      margin-bottom: 24px;
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .header-badge {
+      background: #eff6ff;
+      color: var(--primary);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .doc-meta {
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .section-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 24px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-left: 4px solid var(--primary);
+      padding-left: 10px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: #f1f5f9;
+      padding: 14px;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary-light);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--secondary);
+      margin-top: 4px;
+    }
+
+    .stat-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      text-align: left;
+    }
+
+    th {
+      background: #f8fafc;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .badge-c {
+      background: #dcfce7;
+      color: #15803d;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: inline-block;
+    }
+
+    .badge-nc {
+      background: #fee2e2;
+      color: #b91c1c;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: inline-block;
+    }
+
+    .badge-na {
+      background: #f1f5f9;
+      color: #64748b;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      display: inline-block;
+    }
+
+    .alert-box {
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-left: 4px solid var(--alerta);
+      padding: 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin: 16px 0;
+      color: #92400e;
+    }
+
+    .alert-danger {
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      border-left: 4px solid var(--nao-conforme);
+      color: #991b1b;
+    }
+
+    .action-table th {
+      background: #1e3a8a;
+      color: #ffffff;
+    }
+
+    .signatures {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px dashed var(--border);
+    }
+
+    .sign-line {
+      border-top: 1px solid #000;
+      margin-top: 40px;
+      text-align: center;
+      font-size: 12px;
+      padding-top: 6px;
+      font-weight: 600;
+    }
+
+    .print-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--primary);
+      color: white;
+      padding: 12px 20px;
+      border-radius: 50px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .print-btn:hover {
+      background: #1d4ed8;
+    }
+
+    @media print {
+      body {
+        padding: 0;
+        background: #fff;
+      }
+      .container {
+        box-shadow: none;
+        border: none;
+        padding: 15px;
+        max-width: 100%;
+      }
+      .print-btn {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button class="print-btn" onclick="window.print()">
+    🖨️ Imprimir / Salvar PDF
+  </button>
+
+  <div class="container">
+    <div class="header">
+      <div class="header-logo">
+        <div>
+          <h1>🥛 ATALAT</h1>
+          <div style="font-size: 13px; color: var(--text-muted); font-weight: 600;">LATICÍNIOS ATALAT • SETOR DE FOMENTO E QUALIDADE</div>
+        </div>
+      </div>
+      <div>
+        <div class="header-badge">RELATÓRIO PQFL & DIAGNÓSTICO</div>
+        <div class="doc-meta" style="margin-top: 6px;">
+          IN 76/2018 & IN 77/2018 MAPA<br>
+          Data Avaliação: <strong>22/12/2025</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- DADOS GERAIS -->
+    <div class="section-title">1. Dados do Fornecedor e da Propriedade</div>
+    <div class="grid-2">
+      <table>
+        <tr><th>Produtor</th><td><strong>Manoel Messias Barbosa</strong></td></tr>
+        <tr><th>Propriedade</th><td>Fazenda Vista Boa</td></tr>
+        <tr><th>Município</th><td>Frei Gaspar - MG</td></tr>
+        <tr><th>Telefone</th><td>(33) 9931-6059</td></tr>
+        <tr><th>Idade</th><td>63 anos</td></tr>
+      </table>
+      <table>
+        <tr><th>Mão de Obra</th><td>Familiar (1 pessoa ativa)</td></tr>
+        <tr><th>Sucessão Familiar</th><td><strong style="color: var(--nao-conforme);">Não possui</strong></td></tr>
+        <tr><th>Interesse em Assistência</th><td><strong style="color: var(--conforme);">Sim, deseja</strong></td></tr>
+        <tr><th>Pretensão Produtiva</th><td>Deseja <strong>Aumentar</strong> a produção</td></tr>
+        <tr><th>Avaliador Técnico</th><td>Irai Pereira (Compra de Leite)</td></tr>
+      </table>
+    </div>
+
+    <!-- INDICADORES ZOOTÉCNICOS -->
+    <div class="section-title">2. Indicadores Zootécnicos e Produtivos</div>
+    <div class="grid-4">
+      <div class="stat-card">
+        <div class="stat-label">Produção Diária</div>
+        <div class="stat-val">90 L / dia</div>
+        <div class="stat-sub">Volume atual coletado</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Vacas em Lactação</div>
+        <div class="stat-val">20 VL</div>
+        <div class="stat-sub">0 vacas secas (VS)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Média Por Vaca</div>
+        <div class="stat-val" style="color: var(--nao-conforme);">4,5 L / vaca</div>
+        <div class="stat-sub">Baixa conversão alimentar</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Capacidade Tanque</div>
+        <div class="stat-val">1.000 L</div>
+        <div class="stat-sub">Ocupação de apenas 9 a 18%</div>
+      </div>
+    </div>
+
+    <!-- PONTOS CRÍTICOS -->
+    <div class="alert-box alert-danger">
+      <strong>🚨 PONTO CRÍTICO 1 - RISCO DE RESÍDUO DE ANTIMICROBIANOS (IN 76/77):</strong><br>
+      Uso registrado de <strong>Terramicina</strong> concomitante a <strong>NÃO CONFORMIDADE no Item 13</strong> (ausência de anotação de tratamentos e período de carência). Risco iminente de leite com inibidores ser misturado no tanque e caminhão de coleta.
+    </div>
+
+    <div class="alert-box">
+      <strong>⚠️ PONTO CRÍTICO 2 - MANUTENÇÃO DE ORDENHADEIRA & ESTRUTURA DO TANQUE:</strong><br>
+      A ordenhadeira mecânica não possui manutenção periódica preventiva (Item 10 - NC) e a sala do tanque necessita de melhorias imediatas de limpeza e adequação física (Item 17 - NC).
+    </div>
+
+    <!-- RESULTADO DO CHECKLIST (40 ITENS) -->
+    <div class="section-title">3. Síntese do Checklist PQFL (40 Requisitos)</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Bloco de Boas Práticas</th>
+          <th style="text-align: center;">Itens C</th>
+          <th style="text-align: center;">Itens NC</th>
+          <th style="text-align: center;">Itens NA</th>
+          <th style="text-align: center;">Conformidade (%)</th>
+          <th>Status do Bloco</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>1. Qualidade do Leite</strong> (Itens 1 a 10)</td>
+          <td style="text-align: center; color: var(--conforme); font-weight:700;">9</td>
+          <td style="text-align: center; color: var(--nao-conforme); font-weight:700;">1</td>
+          <td style="text-align: center;">0</td>
+          <td style="text-align: center; font-weight: 700;">90,0%</td>
+          <td><span class="badge-c">Excelente Higiene</span></td>
+        </tr>
+        <tr>
+          <td><strong>2. Gestão e Estrutura</strong> (Itens 11 a 20)</td>
+          <td style="text-align: center; color: var(--conforme); font-weight:700;">4</td>
+          <td style="text-align: center; color: var(--nao-conforme); font-weight:700;">6</td>
+          <td style="text-align: center;">0</td>
+          <td style="text-align: center; font-weight: 700;">40,0%</td>
+          <td><span class="badge-nc">Requer Atenção</span></td>
+        </tr>
+        <tr>
+          <td><strong>3. Sanidade e Reprodução</strong> (Itens 21 a 30)</td>
+          <td style="text-align: center; color: var(--conforme); font-weight:700;">7</td>
+          <td style="text-align: center; color: var(--nao-conforme); font-weight:700;">2</td>
+          <td style="text-align: center;">1</td>
+          <td style="text-align: center; font-weight: 700;">77,8%</td>
+          <td><span class="badge-c">Satisfatório</span></td>
+        </tr>
+        <tr>
+          <td><strong>4. Agricultura e Alimentação</strong> (Itens 31 a 40)</td>
+          <td style="text-align: center; color: var(--conforme); font-weight:700;">1</td>
+          <td style="text-align: center; color: var(--nao-conforme); font-weight:700;">8</td>
+          <td style="text-align: center;">1</td>
+          <td style="text-align: center; font-weight: 700;">11,1%</td>
+          <td><span class="badge-nc">Gargalo Crítico</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- PLANO DE AÇÃO CORRETIVO -->
+    <div class="section-title">4. Plano de Ação Corretivo Imediato (PQFL 5W2H)</div>
+    <table class="action-table">
+      <thead>
+        <tr>
+          <th>Meta / Ação</th>
+          <th>Responsável</th>
+          <th>Prazo</th>
+          <th>Método de Execução</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Controle de Carência Veterinária</strong><br><small>Eliminar risco de antibiótico no leite</small></td>
+          <td>Manoel / Assist. Atalat</td>
+          <td><strong>Imediato</strong></td>
+          <td>Instalação de prancheta de registro de tratamentos (data, dose, animal e carência de descarte) e fita visual no animal.</td>
+        </tr>
+        <tr>
+          <td><strong>Revisão da Ordenhadeira</strong><br><small>Garantir estabilidade de vácuo</small></td>
+          <td>Técnico Mecânico</td>
+          <td>15 dias</td>
+          <td>Substituição de borrachas/teteiras, teste do pulsador e calibração de vácuo.</td>
+        </tr>
+        <tr>
+          <td><strong>Organização da Sala do Tanque</strong><br><small>Higiene do ambiente de estocagem</small></td>
+          <td>Manoel Messias</td>
+          <td>20 dias</td>
+          <td>Limpeza profunda, remoção de itens sem uso, vedação de aberturas contra vetores.</td>
+        </tr>
+        <tr>
+          <td><strong>Manejo Nutricional e Sal Mineral</strong><br><small>Elevar média diária de 4,5L para 8-10L</small></td>
+          <td>Técnico de Fomento</td>
+          <td>30 dias</td>
+          <td>Introdução de sal mineral leiteiro específico e ajuste no balanceamento do concentrado.</td>
+        </tr>
+        <tr>
+          <td><strong>Planejamento Forrageiro da Seca</strong><br><small>Garantir volumoso a 100% dos animais</small></td>
+          <td>Produtor / Agrônomo</td>
+          <td>Próxima Safra</td>
+          <td>Reforma e ampliação de capineira ou canavial de suporte para o período de estiagem.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- PARECER CONCLUSIVO -->
+    <div class="section-title">5. Parecer e Enquadramento Técnico</div>
+    <p style="font-size: 13px; color: var(--text);">
+      O produtor rural <strong>Manoel Messias Barbosa</strong> é classificado no PQFL como <strong>Apto em Nível de Desenvolvimento</strong>. Possui excelentes rotinas higiênicas na ordenha e vacinação do rebanho em dia. Os dois pilares de trabalho prioritários com o fomento da Atalat são: <strong>(1) Salvaguarda contra resíduos de antibióticos</strong> através da planilha de carência e <strong>(2) Aporte nutricional e forrageiro</strong> para triplicar a captação de leite da fazenda, viabilizando o melhor aproveitamento do tanque de 1.000 L já instalado.
+    </p>
+
+    <!-- ASSINATURAS -->
+    <div class="signatures">
+      <div>
+        <div class="sign-line">
+          Irai Pereira<br>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">Depto. de Compra de Leite / Fomento Atalat</span>
+        </div>
+      </div>
+      <div>
+        <div class="sign-line">
+          Manoel Messias Barbosa<br>
+          <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">Produtor Rural Responsável</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
