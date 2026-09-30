@@ -533,8 +533,12 @@
             <input id="f-cidade" type="text" placeholder="Ex: Frei Gaspar" required>
           </div>
           <div class="form-group">
-            <label>Unidade Receptora</label>
-            <input id="f-unidade" type="text" value="Atalat" readonly style="background:#f1f5f9">
+            <label>Unidade Receptora *</label>
+            <select id="f-unidade" style="font-weight:600">
+              <option value="Matriz">Matriz</option>
+              <option value="Naque">Naque</option>
+              <option value="Filial">Filial</option>
+            </select>
           </div>
           <div class="form-group">
             <label>Área da Propriedade</label>
@@ -801,7 +805,7 @@
         cpf: '',
         propriedade: 'Fazenda Vista Boa',
         cidade: 'Frei Gaspar',
-        unidade: 'Atalat',
+        unidade: 'Matriz',
         area: '8 AL',
         tanque: '1000',
         producao: '90',
@@ -1101,6 +1105,7 @@
       document.getElementById('f-cpf').value = '';
       document.getElementById('f-propriedade').value = '';
       document.getElementById('f-cidade').value = '';
+      document.getElementById('f-unidade').value = 'Matriz';
       document.getElementById('f-area').value = '';
       document.getElementById('f-tanque').value = '';
       document.getElementById('f-producao').value = '';
@@ -1148,6 +1153,7 @@
       document.getElementById('f-cpf').value = d.cpf || '';
       document.getElementById('f-propriedade').value = d.propriedade || '';
       document.getElementById('f-cidade').value = d.cidade || '';
+      document.getElementById('f-unidade').value = d.unidade || 'Matriz';
       document.getElementById('f-area').value = d.area || '';
       document.getElementById('f-tanque').value = d.tanque || '';
       document.getElementById('f-producao').value = d.producao || '';
@@ -1208,7 +1214,7 @@
         cpf: document.getElementById('f-cpf').value.trim(),
         propriedade,
         cidade,
-        unidade: 'Atalat',
+        unidade: document.getElementById('f-unidade').value || 'Matriz',
         area: document.getElementById('f-area').value.trim(),
         tanque: document.getElementById('f-tanque').value.trim(),
         producao: document.getElementById('f-producao').value.trim(),
@@ -1299,7 +1305,7 @@
             </td>
             <td>
               ${d.propriedade}<br>
-              <small style="color:var(--text-muted)">${d.cidade} - MG</small>
+              <small style="color:var(--text-muted)">${d.cidade} - MG &bull; <strong style="color:var(--primary)">${d.unidade || 'Matriz'}</strong></small>
             </td>
             <td>
               <strong>${d.producao || '0'} L/dia</strong><br>
@@ -1388,7 +1394,7 @@
             <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0">
               <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700;width:35%">Produtor:</td><td style="padding:6px 10px;font-weight:700;color:#1e3a8a">${d.produtor}</td></tr>
               <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Propriedade:</td><td style="padding:6px 10px">${d.propriedade}</td></tr>
-              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Cidade:</td><td style="padding:6px 10px">${d.cidade} - MG</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Cidade / Unidade:</td><td style="padding:6px 10px">${d.cidade} - MG &bull; <strong>Unidade: ${d.unidade || 'Matriz'}</strong></td></tr>
               <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Telefone:</td><td style="padding:6px 10px">${d.telefone || '--'}</td></tr>
               <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Idade / CPF:</td><td style="padding:6px 10px">${d.idade ? d.idade + ' anos' : '--'} / ${d.cpf || 'Não informado'}</td></tr>
             </table>
