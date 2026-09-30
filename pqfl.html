@@ -662,14 +662,49 @@
           <label style="color:#854d0e">Outras recomendações / Anotações do técnico</label>
           <textarea id="f-observacoes" rows="3" placeholder="Observações específicas para esta fazenda..." style="border-color:#fde047"></textarea>
         </div>
-        <div class="form-grid" style="margin-top:12px">
-          <div class="form-group">
-            <label style="color:#854d0e">Técnico Responsável (Compra de Leite)</label>
-            <input id="f-tecnico" type="text" placeholder="Ex: Irai Pereira">
+        </div>
+      </div>
+
+      <!-- SEÇÃO 4: ASSINATURAS DO COMPRADOR E DO PRODUTOR -->
+      <div class="card" style="background:#f8fafc;border-color:#cbd5e1">
+        <div style="font-weight:700;color:var(--primary);margin-bottom:4px;font-size:14px">
+          ✍️ 4. ASSINATURAS (COMPRA DE LEITE & PRODUTOR)
+        </div>
+        <p style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+          Assine na tela (touch no celular ou mouse no computador) ou deixe em branco para assinar manualmente após imprimir.
+        </p>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));gap:16px">
+          <!-- ASSINATURA COMPRA DE LEITE -->
+          <div style="background:white;padding:14px;border-radius:8px;border:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <label style="font-weight:700;font-size:12.5px;color:var(--primary)">1. Ass. Compra de Leite</label>
+              <button type="button" id="clear-sig-comprador" class="nav-btn" style="padding:2px 8px;font-size:11px;color:#dc2626">Limpar</button>
+            </div>
+            <div style="position:relative">
+              <canvas id="canvas-sig-comprador" width="400" height="120" style="width:100%;height:120px;border:1px dashed #94a3b8;border-radius:6px;background:#fff;touch-action:none;cursor:crosshair"></canvas>
+              <span style="position:absolute;bottom:6px;right:8px;font-size:10px;color:#94a3b8;pointer-events:none">✍️ Assine aqui</span>
+            </div>
+            <div style="margin-top:10px" class="form-group">
+              <label style="font-size:11px">Nome do Técnico / Comprador:</label>
+              <input id="f-tecnico" type="text" placeholder="Ex: Irai Pereira" style="font-size:13px;padding:7px 10px">
+            </div>
           </div>
-          <div class="form-group">
-            <label style="color:#854d0e">Produtor ou Responsável que acompanhou</label>
-            <input id="f-produtor-resp" type="text" placeholder="Nome de quem assina">
+
+          <!-- ASSINATURA PRODUTOR OU RESPONSÁVEL -->
+          <div style="background:white;padding:14px;border-radius:8px;border:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <label style="font-weight:700;font-size:12.5px;color:var(--primary)">2. Ass. Produtor ou Responsável</label>
+              <button type="button" id="clear-sig-produtor" class="nav-btn" style="padding:2px 8px;font-size:11px;color:#dc2626">Limpar</button>
+            </div>
+            <div style="position:relative">
+              <canvas id="canvas-sig-produtor" width="400" height="120" style="width:100%;height:120px;border:1px dashed #94a3b8;border-radius:6px;background:#fff;touch-action:none;cursor:crosshair"></canvas>
+              <span style="position:absolute;bottom:6px;right:8px;font-size:10px;color:#94a3b8;pointer-events:none">✍️ Assine aqui</span>
+            </div>
+            <div style="margin-top:10px" class="form-group">
+              <label style="font-size:11px">Nome do Produtor ou Responsável:</label>
+              <input id="f-produtor-resp" type="text" placeholder="Ex: Manoel Messias Barbosa" style="font-size:13px;padding:7px 10px">
+            </div>
           </div>
         </div>
       </div>
@@ -962,9 +997,101 @@
       });
     }
 
+    // CONTROLE DE ASSINATURA DIGITAL (CANVAS TOUCH / MOUSE)
+    let currentSigComprador = '';
+    let currentSigProdutor = '';
+
+    function setupSignaturePad(canvasId, clearBtnId) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let drawing = false;
+
+      function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+          x: (clientX - rect.left) * scaleX,
+          y: (clientY - rect.top) * scaleY
+        };
+      }
+
+      function start(e) {
+        drawing = true;
+        const pos = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(pos.x, pos.y);
+        if (e.type.startsWith('touch')) e.preventDefault();
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+        const pos = getPos(e);
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#1e3a8a';
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+        if (e.type.startsWith('touch')) e.preventDefault();
+      }
+
+      function stop() {
+        drawing = false;
+      }
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', draw);
+      window.addEventListener('mouseup', stop);
+
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', draw, { passive: false });
+      window.addEventListener('touchend', stop);
+
+      document.getElementById(clearBtnId)?.addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (canvasId === 'canvas-sig-comprador') currentSigComprador = '';
+        if (canvasId === 'canvas-sig-produtor') currentSigProdutor = '';
+      });
+    }
+
+    function clearSignatureCanvas(canvasId) {
+      const canvas = document.getElementById(canvasId);
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    function loadSignatureToCanvas(canvasId, dataUrl) {
+      clearSignatureCanvas(canvasId);
+      if (!dataUrl) return;
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      img.src = dataUrl;
+    }
+
+    function isCanvasBlank(canvas) {
+      if (!canvas) return true;
+      const blank = document.createElement('canvas');
+      blank.width = canvas.width;
+      blank.height = canvas.height;
+      return canvas.toDataURL() === blank.toDataURL();
+    }
+
     function newDiagnostic() {
       currentId = 'pqfl_' + Date.now();
       currentAnswers = {};
+      currentSigComprador = '';
+      currentSigProdutor = '';
+      clearSignatureCanvas('canvas-sig-comprador');
+      clearSignatureCanvas('canvas-sig-produtor');
       
       document.getElementById('form-title').textContent = '📝 Novo Diagnóstico PQFL';
       document.getElementById('f-produtor').value = '';
@@ -1049,6 +1176,11 @@
       updateScores();
       updateAntibioticChipUI();
 
+      currentSigComprador = d.sigComprador || '';
+      currentSigProdutor = d.sigProdutor || '';
+      loadSignatureToCanvas('canvas-sig-comprador', currentSigComprador);
+      loadSignatureToCanvas('canvas-sig-produtor', currentSigProdutor);
+
       switchView('form');
     }
 
@@ -1061,6 +1193,11 @@
       if (!produtor || !propriedade || !cidade || !data) {
         return alert('Por favor, preencha os campos obrigatórios: Produtor, Propriedade, Cidade e Data!');
       }
+
+      let canvasComp = document.getElementById('canvas-sig-comprador');
+      let canvasProd = document.getElementById('canvas-sig-produtor');
+      let sigComprador = canvasComp && !isCanvasBlank(canvasComp) ? canvasComp.toDataURL('image/png') : (currentSigComprador || '');
+      let sigProdutor = canvasProd && !isCanvasBlank(canvasProd) ? canvasProd.toDataURL('image/png') : (currentSigProdutor || '');
 
       let d = {
         id: currentId || ('pqfl_' + Date.now()),
@@ -1089,6 +1226,8 @@
         observacoes: document.getElementById('f-observacoes').value.trim(),
         tecnico: document.getElementById('f-tecnico').value.trim(),
         produtorResp: document.getElementById('f-produtor-resp').value.trim(),
+        sigComprador,
+        sigProdutor,
         answers: { ...currentAnswers }
       };
 
@@ -1391,18 +1530,29 @@
             </div>
           </div>
 
-          <!-- ASSINATURAS -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px;padding-top:16px;border-top:1px dashed #cbd5e1;text-align:center;font-size:12px">
-            <div>
-              <div style="border-top:1px solid #000;margin-top:30px;padding-top:6px;font-weight:700">
-                ${d.tecnico || 'Irai Pereira'}<br>
-                <span style="font-weight:normal;color:#64748b;font-size:11px">Departamento de Compra de Leite / Fomento Atalat</span>
+          <!-- ASSINATURAS NO FORMATO OFICIAL DA FICHA ATALAT -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:28px;padding-top:16px;border-top:1px dashed #cbd5e1;font-size:12px">
+            <!-- ASSINATURA COMPRA DE LEITE -->
+            <div style="border:1px solid #94a3b8;border-radius:4px;padding:8px 12px;background:#fafafa">
+              <div style="font-size:11px;color:#64748b;font-weight:700">Ass.</div>
+              <div style="height:65px;display:flex;align-items:center;justify-content:center">
+                ${d.sigComprador ? `<img src="${d.sigComprador}" alt="Assinatura Compra de Leite" style="max-height:60px;max-width:95%;object-fit:contain">` : '<span style="color:#cbd5e1;font-size:11px;font-style:italic">Assinatura do comprador</span>'}
+              </div>
+              <div style="border-top:1px solid #000;padding-top:4px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px">Compra de Leite:</span>
+                <span style="font-weight:700;color:#1e3a8a">${d.tecnico || 'Irai Pereira'}</span>
               </div>
             </div>
-            <div>
-              <div style="border-top:1px solid #000;margin-top:30px;padding-top:6px;font-weight:700">
-                ${d.produtorResp || d.produtor}<br>
-                <span style="font-weight:normal;color:#64748b;font-size:11px">Produtor Rural / Responsável</span>
+
+            <!-- ASSINATURA PRODUTOR OU RESPONSÁVEL -->
+            <div style="border:1px solid #94a3b8;border-radius:4px;padding:8px 12px;background:#fafafa">
+              <div style="font-size:11px;color:#64748b;font-weight:700">Ass.</div>
+              <div style="height:65px;display:flex;align-items:center;justify-content:center">
+                ${d.sigProdutor ? `<img src="${d.sigProdutor}" alt="Assinatura Produtor" style="max-height:60px;max-width:95%;object-fit:contain">` : '<span style="color:#cbd5e1;font-size:11px;font-style:italic">Assinatura do produtor</span>'}
+              </div>
+              <div style="border-top:1px solid #000;padding-top:4px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:11px">Produtor ou responsável:</span>
+                <span style="font-weight:700;color:#1e3a8a">${d.produtorResp || d.produtor || ''}</span>
               </div>
             </div>
           </div>
@@ -1433,6 +1583,8 @@
     window.addEventListener('DOMContentLoaded', () => {
       buildQuestionBlocks();
       renderAntibioticChips();
+      setupSignaturePad('canvas-sig-comprador', 'clear-sig-comprador');
+      setupSignaturePad('canvas-sig-produtor', 'clear-sig-produtor');
       renderList();
     });
   </script>
