@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Módulo PQFL - Relatório de Compra de Leite e Diagnóstico | Laticínios Atalat</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #2563eb;
+      --primary-subtle: #eff6ff;
+      --secondary: #0f172a;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #cbd5e1;
+      --border-light: #e2e8f0;
+      --conforme: #16a34a;
+      --conforme-bg: #dcfce7;
+      --nao-conforme: #dc2626;
+      --nao-conforme-bg: #fee2e2;
+      --na: #64748b;
+      --na-bg: #f1f5f9;
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1050px;
+      margin: 0 auto;
+    }
+
+    /* TOP BAR */
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--primary);
+      letter-spacing: -0.5px;
+    }
+
+    .version-tag {
+      background: #eff6ff;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: white;
+      font-size: 13.5px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text);
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .nav-btn:hover {
+      background: var(--primary-subtle);
+      border-color: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .nav-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    /* CARDS */
+    .card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* FORM STYLES */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .form-group input, 
+    .form-group select, 
+    .form-group textarea {
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--text);
+      background: #ffffff;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .form-group input:focus, 
+    .form-group select:focus, 
+    .form-group textarea:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+    }
+
+    /* CHECKBOX / RADIO TILES */
+    .radio-tiles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .radio-tile {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      background: #fafafa;
+    }
+
+    .radio-tile:hover {
+      background: var(--primary-subtle);
+    }
+
+    /* QUESTION CHECKLIST */
+    .block-card {
+      border-left: 5px solid var(--primary);
+      margin-bottom: 24px;
+    }
+
+    .block-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .block-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--secondary);
+    }
+
+    .block-score {
+      font-size: 13px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #f1f5f9;
+    }
+
+    .question-row {
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      background: #f8fafc;
+      border: 1px solid #f1f5f9;
+      transition: background 0.15s ease;
+    }
+
+    .question-row:hover {
+      background: #f1f5f9;
+    }
+
+    .q-num {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .q-text {
+      font-size: 13.5px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+
+    .q-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .btn-toggle {
+      width: 44px;
+      height: 32px;
+      border: 1px solid var(--border);
+      background: white;
+      border-radius: 4px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.1s ease;
+    }
+
+    .btn-toggle:hover {
+      border-color: #94a3b8;
+    }
+
+    .btn-toggle.c.selected {
+      background: var(--conforme);
+      color: white;
+      border-color: var(--conforme);
+    }
+
+    .btn-toggle.nc.selected {
+      background: var(--nao-conforme);
+      color: white;
+      border-color: var(--nao-conforme);
+    }
+
+    .btn-toggle.na.selected {
+      background: var(--na);
+      color: white;
+      border-color: var(--na);
+    }
+
+    /* ACTION BAR */
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+      position: sticky;
+      bottom: 20px;
+      background: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      border: 1px solid var(--border-light);
+      z-index: 10;
+    }
+
+    .btn-main {
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-light); }
+    .btn-success { background: var(--conforme); color: white; }
+    .btn-success:hover { background: #15803d; }
+    .btn-secondary { background: #f1f5f9; color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { background: #e2e8f0; }
+
+    /* LIST TABLE */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+
+    table.data-table th {
+      background: #f8fafc;
+      padding: 12px 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-bottom: 2px solid var(--border);
+      text-align: left;
+    }
+
+    table.data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-light);
+      vertical-align: middle;
+    }
+
+    table.data-table tr:hover {
+      background: #f8fafc;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .badge-success { background: var(--conforme-bg); color: #15803d; }
+    .badge-danger { background: var(--nao-conforme-bg); color: #b91c1c; }
+    .badge-warning { background: #fef3c7; color: #b45309; }
+
+    /* PRINT LAYOUT */
+    @media print {
+      body {
+        padding: 0;
+        background: white;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .card {
+        border: none;
+        box-shadow: none;
+        padding: 0;
+      }
+      .container {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- NAVIGATION BAR -->
+    <div class="top-nav no-print">
+      <div class="brand-group">
+        <a href="/" class="nav-btn" style="padding:6px 12px;font-size:12px">← Voltar às Visitas</a>
+        <div class="brand-title">🥛 Atalat PQFL</div>
+        <span class="version-tag">v2.7.0</span>
+      </div>
+
+      <div class="nav-tabs">
+        <button id="tab-list-btn" class="nav-btn active" onclick="switchView('list')">📋 Lista de Diagnósticos</button>
+        <button id="tab-new-btn" class="nav-btn" onclick="newDiagnostic()">➕ Novo Diagnóstico</button>
+        <button class="nav-btn" onclick="exportData()" title="Baixar backup dos diagnósticos">💾 Exportar Backup</button>
+      </div>
+    </div>
+
+    <!-- VIEW 1: LISTA DE DIAGNÓSTICOS -->
+    <div id="view-list" class="card">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📋 Diagnósticos PQFL Realizados</div>
+          <span style="font-size:12px;color:var(--text-muted)">Relatórios oficiais de compra de leite e boas práticas agropecuárias (IN 76 e 77/2018).</span>
+        </div>
+        <button class="btn-main btn-primary" onclick="newDiagnostic()">＋ Novo Diagnóstico</button>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <input id="search-input" type="text" placeholder="🔍 Buscar por produtor, propriedade ou cidade..." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;" oninput="renderList()">
+      </div>
+
+      <div style="overflow-x:auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Produtor</th>
+              <th>Propriedade / Cidade</th>
+              <th>Produção</th>
+              <th>Conformidade</th>
+              <th>Status Antibiótico</th>
+              <th style="text-align:right">Ações</th>
+            </tr>
+          </thead>
+          <tbody id="diagnostic-tbody">
+            <!-- Renderizado via JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- VIEW 2: FORMULÁRIO DE PREENCHIMENTO -->
+    <div id="view-form" class="card" style="display:none">
+      <div class="section-header">
+        <div>
+          <div class="section-title" id="form-title">📝 Novo Diagnóstico e Avaliação PQFL</div>
+          <span style="font-size:12px;color:var(--text-muted)">Preencha os dados da propriedade e avalie os 40 itens de boas práticas.</span>
+        </div>
+        <button class="btn-main btn-secondary" onclick="switchView('list')">Cancelar</button>
+      </div>
+
+      <!-- SEÇÃO 1: CABEÇALHO DA PROPRIEDADE -->
+      <div class="card" style="background:#fafcff;border-color:#dbeafe;padding:18px">
+        <div style="font-weight:700;color:var(--primary);margin-bottom:12px;font-size:14px">1. IDENTIFICAÇÃO DO PRODUTOR E DA PROPRIEDADE</div>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column: span 2">
+            <label>Nome do Produtor *</label>
+            <input id="f-produtor" type="text" placeholder="Ex: Manoel Messias Barbosa" required>
+          </div>
+          <div class="form-group">
+            <label>Data da Avaliação *</label>
+            <input id="f-data" type="date" required>
+          </div>
+          <div class="form-group">
+            <label>Telefone</label>
+            <input id="f-telefone" type="text" placeholder="(33) 99999-9999">
+          </div>
+          <div class="form-group">
+            <label>Idade (anos)</label>
+            <input id="f-idade" type="number" placeholder="Ex: 63">
+          </div>
+          <div class="form-group">
+            <label>CPF</label>
+            <input id="f-cpf" type="text" placeholder="000.000.000-00">
+          </div>
+          <div class="form-group" style="grid-column: span 2">
+            <label>Nome da Propriedade *</label>
+            <input id="f-propriedade" type="text" placeholder="Ex: Fazenda Vista Boa" required>
+          </div>
+          <div class="form-group">
+            <label>Cidade / Município *</label>
+            <input id="f-cidade" type="text" placeholder="Ex: Frei Gaspar" required>
+          </div>
+          <div class="form-group">
+            <label>Unidade Receptora</label>
+            <input id="f-unidade" type="text" value="Atalat" readonly style="background:#f1f5f9">
+          </div>
+          <div class="form-group">
+            <label>Área da Propriedade</label>
+            <input id="f-area" type="text" placeholder="Ex: 8 AL (Alqueires)">
+          </div>
+          <div class="form-group">
+            <label>Capacidade do Tanque (Litros)</label>
+            <input id="f-tanque" type="number" placeholder="Ex: 1000">
+          </div>
+          <div class="form-group">
+            <label>Produção Média Diária (L/dia) *</label>
+            <input id="f-producao" type="number" placeholder="Ex: 90" required>
+          </div>
+          <div class="form-group">
+            <label>Vacas em Lactação (VL)</label>
+            <input id="f-vl" type="number" placeholder="Ex: 20">
+          </div>
+          <div class="form-group">
+            <label>Vacas Secas (VS)</label>
+            <input id="f-vs" type="number" placeholder="Ex: 0">
+          </div>
+          <div class="form-group">
+            <label>Recria (Bezerras / Novilhas)</label>
+            <input id="f-recria" type="number" placeholder="Ex: 15">
+          </div>
+        </div>
+
+        <div style="font-weight:700;color:var(--primary);margin:16px 0 10px;font-size:13px">CARACTERÍSTICAS DA PROPRIEDADE & REFRIGERAÇÃO</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Mão de Obra</label>
+            <select id="f-mao-obra">
+              <option value="Familiar">Familiar</option>
+              <option value="Mista">Mista</option>
+              <option value="Contratada">Contratada</option>
+              <option value="Temporário">Temporário</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Pessoas Envolvidas (nº)</label>
+            <input id="f-pessoas" type="number" value="1">
+          </div>
+          <div class="form-group">
+            <label>Tipo de Refrigeração</label>
+            <select id="f-refrigeracao">
+              <option value="Individual">Individual</option>
+              <option value="Comunitário">Comunitário</option>
+              <option value="Sociedade">Sociedade (mais de 1 pessoa)</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="font-weight:700;color:var(--primary);margin:16px 0 10px;font-size:13px">PERFIL DO PRODUTOR</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Escolaridade</label>
+            <select id="f-escolaridade">
+              <option value="Ensino fundamental incompleto">Ensino fundamental incompleto</option>
+              <option value="Ensino fundamental completo">Ensino fundamental completo</option>
+              <option value="Ensino médio incompleto">Ensino médio incompleto</option>
+              <option value="Ensino médio completo">Ensino médio completo</option>
+              <option value="Graduando">Graduando</option>
+              <option value="Graduado">Graduado</option>
+              <option value="Pós-graduado">Pós-graduado</option>
+              <option value="Curso técnico">Curso técnico</option>
+              <option value="Cursos de capacitação">Cursos de capacitação</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Sobre produção pensa em</label>
+            <select id="f-pretensao">
+              <option value="Aumentar">Aumentar</option>
+              <option value="Manter">Manter</option>
+              <option value="Diminuir">Diminuir</option>
+              <option value="Parar">Parar</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Existe sucessão familiar?</label>
+            <select id="f-sucessao">
+              <option value="Não">Não</option>
+              <option value="Sim">Sim</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Interesse em assistência técnica?</label>
+            <select id="f-assistencia">
+              <option value="Sim">Sim</option>
+              <option value="Não">Não</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEÇÃO 2: CHECKLIST DOS 40 ITENS -->
+      <div style="margin:24px 0 12px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h3 style="font-size:16px;color:var(--secondary)">2. Checklist de Boas Práticas Agropecuárias (40 Itens)</h3>
+          <p style="font-size:12px;color:var(--text-muted)">Marque <strong>C</strong> (Conforme), <strong>NC</strong> (Não Conforme) ou <strong>NA</strong> (Não se Aplica).</p>
+        </div>
+        <div style="font-size:12px;display:flex;gap:8px">
+          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:var(--conforme);display:inline-block"></span> C = Conforme</span>
+          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:var(--nao-conforme);display:inline-block"></span> NC = Não Conforme</span>
+          <span style="display:inline-flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:var(--na);display:inline-block"></span> NA = Não se Aplica</span>
+        </div>
+      </div>
+
+      <!-- BLOCOS DE ITENS CONTAINER -->
+      <div id="blocks-container">
+        <!-- Renderizado dinamicamente via JS -->
+      </div>
+
+      <!-- SEÇÃO 3: ANTIBIÓTICOS E OBSERVAÇÕES -->
+      <div class="card" style="background:#fefce8;border-color:#fef08a">
+        <div style="font-weight:700;color:#854d0e;margin-bottom:8px;font-size:14px">3. ANTIBIÓTICOS E OBSERVAÇÕES DE CAMPO</div>
+        <div class="form-group" style="margin-bottom:12px">
+          <label style="color:#854d0e">Antibióticos e medicamentos utilizados na propriedade</label>
+          <input id="f-antibioticos" type="text" placeholder="Ex: Terramicina, Penicilina, Gentamicina..." style="border-color:#fde047">
+        </div>
+        <div class="form-group">
+          <label style="color:#854d0e">Outras recomendações / Anotações do técnico</label>
+          <textarea id="f-observacoes" rows="3" placeholder="Observações específicas para esta fazenda..." style="border-color:#fde047"></textarea>
+        </div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="form-group">
+            <label style="color:#854d0e">Técnico Responsável (Compra de Leite)</label>
+            <input id="f-tecnico" type="text" placeholder="Ex: Irai Pereira">
+          </div>
+          <div class="form-group">
+            <label style="color:#854d0e">Produtor ou Responsável que acompanhou</label>
+            <input id="f-produtor-resp" type="text" placeholder="Nome de quem assina">
+          </div>
+        </div>
+      </div>
+
+      <!-- FORM ACTIONS -->
+      <div class="form-actions">
+        <button class="btn-main btn-secondary" onclick="switchView('list')">Cancelar</button>
+        <button class="btn-main btn-primary" onclick="saveDiagnostic(false)">💾 Salvar Diagnóstico</button>
+        <button class="btn-main btn-success" onclick="saveDiagnostic(true)">🖨️ Salvar e Visualizar Relatório</button>
+      </div>
+    </div>
+
+    <!-- VIEW 3: RELATÓRIO OFICIAL PRONTO PARA IMPRESSÃO -->
+    <div id="view-report" style="display:none">
+      <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <button class="nav-btn" onclick="switchView('list')">← Voltar à Lista</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn-main btn-secondary" onclick="editCurrentDiagnostic()">✏️ Editar Dados</button>
+          <button class="btn-main btn-primary" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+        </div>
+      </div>
+
+      <div id="report-printable-content">
+        <!-- Renderizado dinamicamente com o layout oficial Atalat -->
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // BASE DE DADOS DOS 40 ITENS OFICIAIS DA FICHA ATALAT PQFL
+    const PQFL_QUESTIONS = [
+      // BLOCO 1: QUALIDADE DO LEITE (1 a 10)
+      { id: 1, bloco: 'Qualidade do Leite', text: 'O procedimento de limpeza de ordenha é eficiente?' },
+      { id: 2, bloco: 'Qualidade do Leite', text: 'O procedimento de limpeza do tanque é eficiente?' },
+      { id: 3, bloco: 'Qualidade do Leite', text: 'O tanque é calibrado para fazer a refrigeração do leite abaixo de 4°C até 2 horas após o fim da ordenha?' },
+      { id: 4, bloco: 'Qualidade do Leite', text: 'O agitador do tanque está calibrado?' },
+      { id: 5, bloco: 'Qualidade do Leite', text: 'A água adotada nos procedimentos de limpeza é limpa?' },
+      { id: 6, bloco: 'Qualidade do Leite', text: 'É realizada a sanitização dos equipamentos ou cloração da água?' },
+      { id: 7, bloco: 'Qualidade do Leite', text: 'O tanque comporta o leite produzido no intervalo de coleta?' },
+      { id: 8, bloco: 'Qualidade do Leite', text: 'O procedimento de ordenha ocorre de forma higiênica e aplicando os cuidados do controle da mastite?' },
+      { id: 9, bloco: 'Qualidade do Leite', text: 'Os colaboradores estão aptos a fazer algum teste de controle da mastite subclínica?' },
+      { id: 10, bloco: 'Qualidade do Leite', text: 'A manutenção da ordenhadeira está em dia?' },
+
+      // BLOCO 2: GESTÃO E ESTRUTURA (11 a 20)
+      { id: 11, bloco: 'Gestão e Estrutura', text: 'Registra dados de parto e cobertura?' },
+      { id: 12, bloco: 'Gestão e Estrutura', text: 'Animais são identificados individualmente com brincos ou similar?' },
+      { id: 13, bloco: 'Gestão e Estrutura', text: 'Realiza os registros dos tratamentos realizados nos animais e respeita o período de carência?' },
+      { id: 14, bloco: 'Gestão e Estrutura', text: 'Registra despesas e receitas?' },
+      { id: 15, bloco: 'Gestão e Estrutura', text: 'Faz o controle leiteiro?' },
+      { id: 16, bloco: 'Gestão e Estrutura', text: 'Faz o controle de ganho de peso da recria?' },
+      { id: 17, bloco: 'Gestão e Estrutura', text: 'A sala do tanque é adequada, limpa e organizada?' },
+      { id: 18, bloco: 'Gestão e Estrutura', text: 'A sala de ordenha é adequada, limpa e organizada?' },
+      { id: 19, bloco: 'Gestão e Estrutura', text: 'O depósito de armazenamento de alimentos é adequado, limpo e organizado?' },
+      { id: 20, bloco: 'Gestão e Estrutura', text: 'A área de descanso dos animais tem sombra suficiente e não possui acúmulo de barro?' },
+
+      // BLOCO 3: SANIDADE E REPRODUÇÃO (21 a 30)
+      { id: 21, bloco: 'Sanidade e Reprodução', text: 'Realiza as vacinas obrigatórias para a região?' },
+      { id: 22, bloco: 'Sanidade e Reprodução', text: 'Não usa ocitocina ou faz a correta utilização e higienização das agulhas e seringas?' },
+      { id: 23, bloco: 'Sanidade e Reprodução', text: 'Possui controle estratégico de verminoses e carrapatos?' },
+      { id: 24, bloco: 'Sanidade e Reprodução', text: 'Realiza a secagem das vacas usando a terapia da vaca seca?' },
+      { id: 25, bloco: 'Sanidade e Reprodução', text: 'Possui pessoa capacitada a executar protocolo diagnóstico e tratamento das principais doenças?' },
+      { id: 26, bloco: 'Sanidade e Reprodução', text: 'O rebanho possui exame de brucelose e tuberculose de menos de 1 ano do rebanho?' },
+      { id: 27, bloco: 'Sanidade e Reprodução', text: 'Realiza colostragem e cura de umbigo adequadamente?' },
+      { id: 28, bloco: 'Sanidade e Reprodução', text: 'Possui auxílio técnico para diagnóstico de gestação?' },
+      { id: 29, bloco: 'Sanidade e Reprodução', text: 'Utiliza dos protocolos de indução de cio em animais que passaram do PEV?' },
+      { id: 30, bloco: 'Sanidade e Reprodução', text: 'Utiliza protocolo compatível de vacina reprodutiva, resultando em taxas de aborto aceitáveis?' },
+
+      // BLOCO 4: AGRICULTURA E ALIMENTAÇÃO (31 a 40)
+      { id: 31, bloco: 'Agricultura e Alimentação', text: 'Dieta das vacas em lactação é diferenciada por lotes?' },
+      { id: 32, bloco: 'Agricultura e Alimentação', text: 'Usa dieta específica para pré-parto?' },
+      { id: 33, bloco: 'Agricultura e Alimentação', text: 'Faz análise de solo e recebe recomendação técnica para correção e adubação?' },
+      { id: 34, bloco: 'Agricultura e Alimentação', text: 'Alimentação das vacas em lactação é de acesso integral pela vaca?' },
+      { id: 35, bloco: 'Agricultura e Alimentação', text: 'A dieta da recria promove ganho de peso satisfatórios?' },
+      { id: 36, bloco: 'Agricultura e Alimentação', text: 'A propriedade adota a técnica de milho reidratado?' },
+      { id: 37, bloco: 'Agricultura e Alimentação', text: 'A compra de ingredientes da dieta é feita de forma estratégica?' },
+      { id: 38, bloco: 'Agricultura e Alimentação', text: 'As técnicas de produção e conservação dos alimentos são aplicadas corretamente?' },
+      { id: 39, bloco: 'Agricultura e Alimentação', text: 'A mineralização dos animais atende as exigências de cada categoria?' },
+      { id: 40, bloco: 'Agricultura e Alimentação', text: 'Volumoso da propriedade é planejado para 100% dos animais?' }
+    ];
+
+    const STORAGE_KEY = 'atalat.pqfl.diagnosticos.v1';
+    let currentId = null;
+    let currentAnswers = {};
+
+    // INICIALIZAÇÃO COM DADOS DO MANOEL MESSIAS COMO PADRÃO
+    const INITIAL_DEMO_DATA = [
+      {
+        id: 'pqfl_manoel_messias_20251222',
+        produtor: 'Manoel Messias Barbosa',
+        data: '2025-12-22',
+        telefone: '(33) 9931-6059',
+        idade: '63',
+        cpf: '',
+        propriedade: 'Fazenda Vista Boa',
+        cidade: 'Frei Gaspar',
+        unidade: 'Atalat',
+        area: '8 AL',
+        tanque: '1000',
+        producao: '90',
+        vl: '20',
+        vs: '0',
+        recria: '15',
+        maoObra: 'Familiar',
+        pessoas: '1',
+        refrigeracao: 'Individual',
+        escolaridade: 'Ensino fundamental incompleto',
+        pretensao: 'Aumentar',
+        sucessao: 'Não',
+        assistencia: 'Sim',
+        antibioticos: 'Terramicina',
+        observacoes: 'Produtor motivado a aumentar volume. Necessita de suporte urgente no controle de carência veterinária e manejo forrageiro para seca.',
+        tecnico: 'Irai Pereira',
+        produtorResp: 'Manoel Messias Barbosa',
+        answers: {
+          1:'C', 2:'C', 3:'C', 4:'C', 5:'C', 6:'C', 7:'C', 8:'C', 9:'C', 10:'NC',
+          11:'C', 12:'C', 13:'NC', 14:'NC', 15:'NC', 16:'NC', 17:'NC', 18:'C', 19:'C', 20:'NC',
+          21:'C', 22:'C', 23:'C', 24:'NA', 25:'NC', 26:'C', 27:'C', 28:'C', 29:'C', 30:'NC',
+          31:'NC', 32:'NC', 33:'NC', 34:'C', 35:'NC', 36:'NC', 37:'NC', 38:'NA', 39:'NC', 40:'NC'
+        }
+      }
+    ];
+
+    function getDiagnostics() {
+      try {
+        let raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DEMO_DATA));
+          return INITIAL_DEMO_DATA;
+        }
+        return JSON.parse(raw);
+      } catch (e) {
+        return INITIAL_DEMO_DATA;
+      }
+    }
+
+    function saveDiagnosticsToStorage(data) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function switchView(viewName) {
+      document.getElementById('view-list').style.display = viewName === 'list' ? 'block' : 'none';
+      document.getElementById('view-form').style.display = viewName === 'form' ? 'block' : 'none';
+      document.getElementById('view-report').style.display = viewName === 'report' ? 'block' : 'none';
+
+      document.getElementById('tab-list-btn').className = 'nav-btn' + (viewName === 'list' ? ' active' : '');
+      document.getElementById('tab-new-btn').className = 'nav-btn' + (viewName === 'form' ? ' active' : '');
+
+      if (viewName === 'list') renderList();
+      window.scrollTo(0, 0);
+    }
+
+    // CONSTRUIR O CHECKLIST DOS 40 ITENS NO FORMULÁRIO
+    function buildQuestionBlocks() {
+      const container = document.getElementById('blocks-container');
+      container.innerHTML = '';
+
+      const blocos = [
+        { nome: 'Qualidade do Leite', itens: PQFL_QUESTIONS.slice(0, 10), cor: '#1e3a8a' },
+        { nome: 'Gestão e Estrutura', itens: PQFL_QUESTIONS.slice(10, 20), cor: '#0284c7' },
+        { nome: 'Sanidade e Reprodução', itens: PQFL_QUESTIONS.slice(20, 30), cor: '#7c3aed' },
+        { nome: 'Agricultura e Alimentação', itens: PQFL_QUESTIONS.slice(30, 40), cor: '#059669' }
+      ];
+
+      blocos.forEach(b => {
+        let blockHtml = `
+          <div class="card block-card" style="border-left-color: ${b.cor}">
+            <div class="block-header">
+              <div class="block-title" style="color:${b.cor}">${b.nome}</div>
+              <div class="block-score" id="score-block-${b.nome.replace(/\s+/g, '')}">Conformidade: --</div>
+            </div>
+        `;
+
+        b.itens.forEach(q => {
+          blockHtml += `
+            <div class="question-row">
+              <div class="q-num">${q.id}</div>
+              <div class="q-text">${q.text}</div>
+              <div class="q-buttons">
+                <button type="button" class="btn-toggle c" id="btn-q-${q.id}-c" onclick="setAnswer(${q.id}, 'C')">C</button>
+                <button type="button" class="btn-toggle nc" id="btn-q-${q.id}-nc" onclick="setAnswer(${q.id}, 'NC')">NC</button>
+                <button type="button" class="btn-toggle na" id="btn-q-${q.id}-na" onclick="setAnswer(${q.id}, 'NA')">NA</button>
+              </div>
+            </div>
+          `;
+        });
+
+        blockHtml += `</div>`;
+        container.innerHTML += blockHtml;
+      });
+    }
+
+    function setAnswer(qId, val) {
+      currentAnswers[qId] = val;
+      ['c', 'nc', 'na'].forEach(t => {
+        let btn = document.getElementById(`btn-q-${qId}-${t}`);
+        if (btn) btn.classList.toggle('selected', t.toUpperCase() === val);
+      });
+      updateScores();
+    }
+
+    function updateScores() {
+      const blocos = [
+        { nome: 'Qualidade do Leite', itens: PQFL_QUESTIONS.slice(0, 10) },
+        { nome: 'Gestão e Estrutura', itens: PQFL_QUESTIONS.slice(10, 20) },
+        { nome: 'Sanidade e Reprodução', itens: PQFL_QUESTIONS.slice(20, 30) },
+        { nome: 'Agricultura e Alimentação', itens: PQFL_QUESTIONS.slice(30, 40) }
+      ];
+
+      blocos.forEach(b => {
+        let cCount = 0, ncCount = 0, naCount = 0;
+        b.itens.forEach(q => {
+          let ans = currentAnswers[q.id];
+          if (ans === 'C') cCount++;
+          else if (ans === 'NC') ncCount++;
+          else if (ans === 'NA') naCount++;
+        });
+
+        let totalValid = cCount + ncCount;
+        let pct = totalValid > 0 ? Math.round((cCount / totalValid) * 100) : 0;
+        let el = document.getElementById(`score-block-${b.nome.replace(/\s+/g, '')}`);
+        if (el) {
+          el.textContent = `${pct}% Conforme (${cCount}C / ${ncCount}NC / ${naCount}NA)`;
+          el.style.color = pct >= 75 ? 'var(--conforme)' : (pct >= 50 ? '#b45309' : 'var(--nao-conforme)');
+        }
+      });
+    }
+
+    function newDiagnostic() {
+      currentId = 'pqfl_' + Date.now();
+      currentAnswers = {};
+      
+      document.getElementById('form-title').textContent = '📝 Novo Diagnóstico PQFL';
+      document.getElementById('f-produtor').value = '';
+      document.getElementById('f-data').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('f-telefone').value = '';
+      document.getElementById('f-idade').value = '';
+      document.getElementById('f-cpf').value = '';
+      document.getElementById('f-propriedade').value = '';
+      document.getElementById('f-cidade').value = '';
+      document.getElementById('f-area').value = '';
+      document.getElementById('f-tanque').value = '';
+      document.getElementById('f-producao').value = '';
+      document.getElementById('f-vl').value = '';
+      document.getElementById('f-vs').value = '0';
+      document.getElementById('f-recria').value = '';
+      document.getElementById('f-mao-obra').value = 'Familiar';
+      document.getElementById('f-pessoas').value = '1';
+      document.getElementById('f-refrigeracao').value = 'Individual';
+      document.getElementById('f-escolaridade').value = 'Ensino fundamental incompleto';
+      document.getElementById('f-pretensao').value = 'Aumentar';
+      document.getElementById('f-sucessao').value = 'Não';
+      document.getElementById('f-assistencia').value = 'Sim';
+      document.getElementById('f-antibioticos').value = '';
+      document.getElementById('f-observacoes').value = '';
+      document.getElementById('f-tecnico').value = '';
+      document.getElementById('f-produtor-resp').value = '';
+
+      // Default todos desmarcados
+      PQFL_QUESTIONS.forEach(q => {
+        ['c', 'nc', 'na'].forEach(t => {
+          let btn = document.getElementById(`btn-q-${q.id}-${t}`);
+          if (btn) btn.classList.remove('selected');
+        });
+      });
+      updateScores();
+
+      switchView('form');
+    }
+
+    function editDiagnostic(id) {
+      let list = getDiagnostics();
+      let d = list.find(x => x.id === id);
+      if (!d) return alert('Diagnóstico não encontrado!');
+
+      currentId = d.id;
+      currentAnswers = { ...d.answers };
+
+      document.getElementById('form-title').textContent = `✏️ Editando PQFL: ${d.produtor}`;
+      document.getElementById('f-produtor').value = d.produtor || '';
+      document.getElementById('f-data').value = d.data || '';
+      document.getElementById('f-telefone').value = d.telefone || '';
+      document.getElementById('f-idade').value = d.idade || '';
+      document.getElementById('f-cpf').value = d.cpf || '';
+      document.getElementById('f-propriedade').value = d.propriedade || '';
+      document.getElementById('f-cidade').value = d.cidade || '';
+      document.getElementById('f-area').value = d.area || '';
+      document.getElementById('f-tanque').value = d.tanque || '';
+      document.getElementById('f-producao').value = d.producao || '';
+      document.getElementById('f-vl').value = d.vl || '';
+      document.getElementById('f-vs').value = d.vs || '0';
+      document.getElementById('f-recria').value = d.recria || '';
+      document.getElementById('f-mao-obra').value = d.maoObra || 'Familiar';
+      document.getElementById('f-pessoas').value = d.pessoas || '1';
+      document.getElementById('f-refrigeracao').value = d.refrigeracao || 'Individual';
+      document.getElementById('f-escolaridade').value = d.escolaridade || 'Ensino fundamental incompleto';
+      document.getElementById('f-pretensao').value = d.pretensao || 'Aumentar';
+      document.getElementById('f-sucessao').value = d.sucessao || 'Não';
+      document.getElementById('f-assistencia').value = d.assistencia || 'Sim';
+      document.getElementById('f-antibioticos').value = d.antibioticos || '';
+      document.getElementById('f-observacoes').value = d.observacoes || '';
+      document.getElementById('f-tecnico').value = d.tecnico || '';
+      document.getElementById('f-produtor-resp').value = d.produtorResp || '';
+
+      PQFL_QUESTIONS.forEach(q => {
+        let ans = currentAnswers[q.id];
+        ['c', 'nc', 'na'].forEach(t => {
+          let btn = document.getElementById(`btn-q-${q.id}-${t}`);
+          if (btn) btn.classList.toggle('selected', ans === t.toUpperCase());
+        });
+      });
+      updateScores();
+
+      switchView('form');
+    }
+
+    function saveDiagnostic(openReportAfter) {
+      let produtor = document.getElementById('f-produtor').value.trim();
+      let propriedade = document.getElementById('f-propriedade').value.trim();
+      let cidade = document.getElementById('f-cidade').value.trim();
+      let data = document.getElementById('f-data').value;
+
+      if (!produtor || !propriedade || !cidade || !data) {
+        return alert('Por favor, preencha os campos obrigatórios: Produtor, Propriedade, Cidade e Data!');
+      }
+
+      let d = {
+        id: currentId || ('pqfl_' + Date.now()),
+        produtor,
+        data,
+        telefone: document.getElementById('f-telefone').value.trim(),
+        idade: document.getElementById('f-idade').value.trim(),
+        cpf: document.getElementById('f-cpf').value.trim(),
+        propriedade,
+        cidade,
+        unidade: 'Atalat',
+        area: document.getElementById('f-area').value.trim(),
+        tanque: document.getElementById('f-tanque').value.trim(),
+        producao: document.getElementById('f-producao').value.trim(),
+        vl: document.getElementById('f-vl').value.trim(),
+        vs: document.getElementById('f-vs').value.trim(),
+        recria: document.getElementById('f-recria').value.trim(),
+        maoObra: document.getElementById('f-mao-obra').value,
+        pessoas: document.getElementById('f-pessoas').value,
+        refrigeracao: document.getElementById('f-refrigeracao').value,
+        escolaridade: document.getElementById('f-escolaridade').value,
+        pretensao: document.getElementById('f-pretensao').value,
+        sucessao: document.getElementById('f-sucessao').value,
+        assistencia: document.getElementById('f-assistencia').value,
+        antibioticos: document.getElementById('f-antibioticos').value.trim(),
+        observacoes: document.getElementById('f-observacoes').value.trim(),
+        tecnico: document.getElementById('f-tecnico').value.trim(),
+        produtorResp: document.getElementById('f-produtor-resp').value.trim(),
+        answers: { ...currentAnswers }
+      };
+
+      let list = getDiagnostics();
+      let idx = list.findIndex(x => x.id === d.id);
+      if (idx >= 0) list[idx] = d;
+      else list.unshift(d);
+
+      saveDiagnosticsToStorage(list);
+
+      if (openReportAfter) {
+        showReport(d.id);
+      } else {
+        alert('✅ Diagnóstico PQFL salvo com sucesso!');
+        switchView('list');
+      }
+    }
+
+    function deleteDiagnostic(id) {
+      let list = getDiagnostics();
+      let d = list.find(x => x.id === id);
+      if (!d) return;
+
+      if (!confirm(`Tem certeza que deseja excluir o diagnóstico de "${d.produtor}" (${d.propriedade})?`)) return;
+
+      list = list.filter(x => x.id !== id);
+      saveDiagnosticsToStorage(list);
+      renderList();
+    }
+
+    function calculateStats(answers) {
+      let c = 0, nc = 0, na = 0;
+      Object.values(answers || {}).forEach(v => {
+        if (v === 'C') c++;
+        else if (v === 'NC') nc++;
+        else if (v === 'NA') na++;
+      });
+      let valid = c + nc;
+      let pct = valid > 0 ? Math.round((c / valid) * 100) : 0;
+      return { c, nc, na, valid, pct };
+    }
+
+    function renderList() {
+      let list = getDiagnostics();
+      let tbody = document.getElementById('diagnostic-tbody');
+      let search = (document.getElementById('search-input')?.value || '').toLowerCase();
+
+      let filtered = list.filter(d => {
+        let str = `${d.produtor} ${d.propriedade} ${d.cidade} ${d.data}`.toLowerCase();
+        return str.includes(search);
+      });
+
+      if (!filtered.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">Nenhum diagnóstico encontrado. Clique em <strong>"Novo Diagnóstico"</strong> para criar o primeiro!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(d => {
+        let stats = calculateStats(d.answers);
+        let hasAntibioticRisk = d.answers && d.answers[13] === 'NC' && d.antibioticos;
+        let formattedDate = d.data ? d.data.split('-').reverse().join('/') : '--';
+
+        return `
+          <tr>
+            <td><strong>${formattedDate}</strong></td>
+            <td>
+              <strong>${d.produtor}</strong><br>
+              <small style="color:var(--text-muted)">${d.telefone || 'Sem tel.'} • ${d.idade ? d.idade + ' anos' : ''}</small>
+            </td>
+            <td>
+              ${d.propriedade}<br>
+              <small style="color:var(--text-muted)">${d.cidade} - MG</small>
+            </td>
+            <td>
+              <strong>${d.producao || '0'} L/dia</strong><br>
+              <small style="color:var(--text-muted)">${d.vl || '0'} vacas em lactação</small>
+            </td>
+            <td>
+              <span class="badge ${stats.pct >= 70 ? 'badge-success' : stats.pct >= 50 ? 'badge-warning' : 'badge-danger'}">
+                ${stats.pct}% (${stats.c}C / ${stats.nc}NC)
+              </span>
+            </td>
+            <td>
+              ${hasAntibioticRisk ? 
+                `<span class="badge badge-danger" title="Usa ${d.antibioticos} sem registro de carência!">⚠️ Risco Carência (${d.antibioticos})</span>` : 
+                (d.antibioticos ? `<span class="badge" style="background:#f1f5f9;color:#334155">${d.antibioticos}</span>` : `<span style="color:var(--text-muted);font-size:12px">Nenhum</span>`)}
+            </td>
+            <td style="text-align:right;white-space:nowrap">
+              <button class="nav-btn" style="padding:4px 8px;font-size:12px" onclick="showReport('${d.id}')" title="Ver e imprimir relatório oficial">🖨️ Relatório</button>
+              <button class="nav-btn" style="padding:4px 8px;font-size:12px" onclick="editDiagnostic('${d.id}')" title="Editar">✏️</button>
+              <button class="nav-btn" style="padding:4px 8px;font-size:12px;color:#dc2626" onclick="deleteDiagnostic('${d.id}')" title="Excluir">🗑️</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function showReport(id) {
+      let list = getDiagnostics();
+      let d = list.find(x => x.id === id);
+      if (!d) return alert('Diagnóstico não encontrado!');
+
+      currentId = d.id;
+
+      // Calcular indicadores zootécnicos
+      let vl = parseFloat(d.vl) || 0;
+      let prod = parseFloat(d.producao) || 0;
+      let mediaPorVaca = vl > 0 ? (prod / vl).toFixed(1) : '0';
+      let tanque = parseFloat(d.tanque) || 0;
+      let ocupacaoTanque = tanque > 0 ? Math.round((prod / tanque) * 100) : 0;
+
+      // Estatísticas dos 4 Blocos
+      const blocos = [
+        { nome: 'Qualidade do Leite', itens: PQFL_QUESTIONS.slice(0, 10), icon: '💧' },
+        { nome: 'Gestão e Estrutura', itens: PQFL_QUESTIONS.slice(10, 20), icon: '📋' },
+        { nome: 'Sanidade e Reprodução', itens: PQFL_QUESTIONS.slice(20, 30), icon: '💉' },
+        { nome: 'Agricultura e Alimentação', itens: PQFL_QUESTIONS.slice(30, 40), icon: '🌾' }
+      ];
+
+      let blocksReport = blocos.map(b => {
+        let c = 0, nc = 0, na = 0;
+        b.itens.forEach(q => {
+          let a = d.answers ? d.answers[q.id] : '';
+          if (a === 'C') c++;
+          else if (a === 'NC') nc++;
+          else if (a === 'NA') na++;
+        });
+        let total = c + nc;
+        let pct = total > 0 ? Math.round((c / total) * 100) : 0;
+        return { ...b, c, nc, na, pct };
+      });
+
+      let overall = calculateStats(d.answers);
+      let formattedDate = d.data ? d.data.split('-').reverse().join('/') : '--';
+
+      // Montar HTML do Relatório Oficial da Atalat
+      let html = `
+        <div style="background:white;padding:32px;border-radius:12px;border:1px solid #cbd5e1;box-shadow:0 4px 16px rgba(0,0,0,0.06);max-width:960px;margin:0 auto">
+          <!-- CABEÇALHO OFICIAL ATALAT -->
+          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1e3a8a;padding-bottom:16px;margin-bottom:20px">
+            <div>
+              <h1 style="font-size:26px;color:#1e3a8a;margin-bottom:2px">🥛 ATALAT</h1>
+              <div style="font-size:12px;font-weight:700;color:#64748b">LATICÍNIOS ATALAT • SETOR DE QUALIDADE & COMPRA DE LEITE</div>
+            </div>
+            <div style="text-align:right">
+              <div style="background:#eff6ff;color:#1e3a8a;padding:5px 12px;border-radius:6px;font-weight:700;font-size:12px;border:1px solid #bfdbfe;display:inline-block">
+                RELATÓRIO DE COMPRA DE LEITE E DIAGNÓSTICO - PQFL
+              </div>
+              <div style="font-size:11px;color:#64748b;margin-top:4px">
+                Conforme Instruções Normativas MAPA 76 e 77/2018<br>
+                Data da Avaliação: <strong>${formattedDate}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- DADOS GERAIS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;font-size:13px">
+            <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0">
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700;width:35%">Produtor:</td><td style="padding:6px 10px;font-weight:700;color:#1e3a8a">${d.produtor}</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Propriedade:</td><td style="padding:6px 10px">${d.propriedade}</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Cidade:</td><td style="padding:6px 10px">${d.cidade} - MG</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Telefone:</td><td style="padding:6px 10px">${d.telefone || '--'}</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Idade / CPF:</td><td style="padding:6px 10px">${d.idade ? d.idade + ' anos' : '--'} / ${d.cpf || 'Não informado'}</td></tr>
+            </table>
+            <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0">
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700;width:40%">Mão de Obra:</td><td style="padding:6px 10px">${d.maoObra} (${d.pessoas || 1} pessoa)</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Refrigeração:</td><td style="padding:6px 10px">${d.refrigeracao}</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Pretensão:</td><td style="padding:6px 10px">Pensa em <strong>${d.pretensao}</strong> a produção</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Sucessão Familiar:</td><td style="padding:6px 10px">${d.sucessao}</td></tr>
+              <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Assistência Técnica:</td><td style="padding:6px 10px">Interesse: <strong>${d.assistencia}</strong></td></tr>
+            </table>
+          </div>
+
+          <!-- INDICADORES ZOOTÉCNICOS -->
+          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:20px;text-align:center">
+            <div style="background:#f1f5f9;padding:10px;border-radius:6px;border-left:4px solid #1e3a8a">
+              <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase">Produção Diária</div>
+              <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:2px">${d.producao || 0} L/dia</div>
+              <div style="font-size:10.5px;color:#64748b">Área: ${d.area || '--'}</div>
+            </div>
+            <div style="background:#f1f5f9;padding:10px;border-radius:6px;border-left:4px solid #0284c7">
+              <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase">Rebanho</div>
+              <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:2px">${d.vl || 0} VL / ${d.vs || 0} VS</div>
+              <div style="font-size:10.5px;color:#64748b">Recria: ${d.recria || 0} cab.</div>
+            </div>
+            <div style="background:#f1f5f9;padding:10px;border-radius:6px;border-left:4px solid ${mediaPorVaca < 6 ? '#dc2626' : '#16a34a'}">
+              <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase">Média / Vaca</div>
+              <div style="font-size:18px;font-weight:800;color:${mediaPorVaca < 6 ? '#dc2626' : '#16a34a'};margin-top:2px">${mediaPorVaca} L/vaca</div>
+              <div style="font-size:10.5px;color:#64748b">${mediaPorVaca < 6 ? 'Abaixo do potencial' : 'Bom rendimento'}</div>
+            </div>
+            <div style="background:#f1f5f9;padding:10px;border-radius:6px;border-left:4px solid #7c3aed">
+              <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase">Capacidade Tanque</div>
+              <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:2px">${d.tanque || 0} L</div>
+              <div style="font-size:10.5px;color:#64748b">Ocupação diária: ${ocupacaoTanque}%</div>
+            </div>
+          </div>
+
+          <!-- ALERTA DE ANTIBIÓTICOS / RISCO -->
+          ${d.answers && d.answers[13] === 'NC' && d.antibioticos ? `
+            <div style="background:#fef2f2;border:1px solid #fee2e2;border-left:4px solid #dc2626;padding:12px;border-radius:6px;font-size:12.5px;color:#991b1b;margin-bottom:18px">
+              <strong>🚨 PONTO CRÍTICO - CONTROLE DE CARÊNCIA DE ANTIMICROBIANOS (IN 76/77):</strong><br>
+              A propriedade utiliza <strong>${d.antibioticos}</strong> e foi marcada como <strong>Não Conforme no Item 13</strong> (não realiza registro de tratamentos e controle do período de carência). Risco iminente de leite com inibidores ser misturado na coleta!
+            </div>
+          ` : ''}
+
+          <!-- SÍNTESE DOS 4 BLOCOS -->
+          <div style="font-weight:700;color:#1e3a8a;margin-bottom:8px;font-size:14px">DESEMPENHO POR BLOCO DE BOAS PRÁTICAS</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:20px;border:1px solid #e2e8f0">
+            <thead>
+              <tr style="background:#f8fafc">
+                <th style="padding:8px 10px;text-align:left;border:1px solid #e2e8f0">Bloco</th>
+                <th style="padding:8px 10px;text-align:center;border:1px solid #e2e8f0">Conforme (C)</th>
+                <th style="padding:8px 10px;text-align:center;border:1px solid #e2e8f0">Não Conforme (NC)</th>
+                <th style="padding:8px 10px;text-align:center;border:1px solid #e2e8f0">Não se Aplica (NA)</th>
+                <th style="padding:8px 10px;text-align:center;border:1px solid #e2e8f0">Índice (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${blocksReport.map(b => `
+                <tr>
+                  <td style="padding:6px 10px;border:1px solid #e2e8f0"><strong>${b.icon} ${b.nome}</strong></td>
+                  <td style="padding:6px 10px;text-align:center;border:1px solid #e2e8f0;color:#16a34a;font-weight:700">${b.c}</td>
+                  <td style="padding:6px 10px;text-align:center;border:1px solid #e2e8f0;color:#dc2626;font-weight:700">${b.nc}</td>
+                  <td style="padding:6px 10px;text-align:center;border:1px solid #e2e8f0;color:#64748b">${b.na}</td>
+                  <td style="padding:6px 10px;text-align:center;border:1px solid #e2e8f0;font-weight:800;color:${b.pct >= 75 ? '#16a34a' : b.pct >= 50 ? '#b45309' : '#dc2626'}">${b.pct}%</td>
+                </tr>
+              `).join('')}
+              <tr style="background:#f1f5f9;font-weight:800">
+                <td style="padding:8px 10px;border:1px solid #cbd5e1">TOTAL GERAL CONSOLIDADO</td>
+                <td style="padding:8px 10px;text-align:center;border:1px solid #cbd5e1;color:#16a34a">${overall.c}</td>
+                <td style="padding:8px 10px;text-align:center;border:1px solid #cbd5e1;color:#dc2626">${overall.nc}</td>
+                <td style="padding:8px 10px;text-align:center;border:1px solid #cbd5e1;color:#64748b">${overall.na}</td>
+                <td style="padding:8px 10px;text-align:center;border:1px solid #cbd5e1;font-size:14px;color:${overall.pct >= 70 ? '#16a34a' : '#dc2626'}">${overall.pct}%</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- CHECKLIST COMPLETO DOS 40 ITENS EM 2 COLUNAS (IDÊNTICO À FICHA DE PAPEL) -->
+          <div style="font-weight:700;color:#1e3a8a;margin-bottom:8px;font-size:14px">CHECKLIST DETALHADO DOS 40 ITENS</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:11.5px;margin-bottom:20px">
+            <!-- COLUNA ESQUERDA: 1 a 20 -->
+            <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0">
+              <thead>
+                <tr style="background:#f8fafc">
+                  <th style="padding:4px 6px;text-align:center;border:1px solid #e2e8f0;width:30px">Nº</th>
+                  <th style="padding:4px 6px;text-align:left;border:1px solid #e2e8f0">Boas Práticas Agropecuárias</th>
+                  <th style="padding:4px 6px;text-align:center;border:1px solid #e2e8f0;width:40px">C/NC</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${PQFL_QUESTIONS.slice(0, 20).map(q => {
+                  let a = d.answers ? d.answers[q.id] : '--';
+                  let bg = a === 'C' ? '#dcfce7' : a === 'NC' ? '#fee2e2' : '#f1f5f9';
+                  let col = a === 'C' ? '#15803d' : a === 'NC' ? '#b91c1c' : '#64748b';
+                  return `
+                    <tr>
+                      <td style="padding:3px 6px;text-align:center;border:1px solid #e2e8f0;font-weight:700;color:#64748b">${q.id}</td>
+                      <td style="padding:3px 6px;border:1px solid #e2e8f0">${q.text}</td>
+                      <td style="padding:3px 6px;text-align:center;border:1px solid #e2e8f0;background:${bg};color:${col};font-weight:800">${a || '--'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+
+            <!-- COLUNA DIREITA: 21 a 40 -->
+            <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0">
+              <thead>
+                <tr style="background:#f8fafc">
+                  <th style="padding:4px 6px;text-align:center;border:1px solid #e2e8f0;width:30px">Nº</th>
+                  <th style="padding:4px 6px;text-align:left;border:1px solid #e2e8f0">Boas Práticas Agropecuárias</th>
+                  <th style="padding:4px 6px;text-align:center;border:1px solid #e2e8f0;width:40px">C/NC</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${PQFL_QUESTIONS.slice(20, 40).map(q => {
+                  let a = d.answers ? d.answers[q.id] : '--';
+                  let bg = a === 'C' ? '#dcfce7' : a === 'NC' ? '#fee2e2' : '#f1f5f9';
+                  let col = a === 'C' ? '#15803d' : a === 'NC' ? '#b91c1c' : '#64748b';
+                  return `
+                    <tr>
+                      <td style="padding:3px 6px;text-align:center;border:1px solid #e2e8f0;font-weight:700;color:#64748b">${q.id}</td>
+                      <td style="padding:3px 6px;border:1px solid #e2e8f0">${q.text}</td>
+                      <td style="padding:3px 6px;text-align:center;border:1px solid #e2e8f0;background:${bg};color:${col};font-weight:800">${a || '--'}</td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- RECOMENDAÇÕES E ANTIBIÓTICOS -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;padding:14px;border-radius:6px;font-size:12px;margin-bottom:24px">
+            <div style="margin-bottom:8px">
+              <strong>Antibióticos utilizados na propriedade:</strong> ${d.antibioticos || 'Nenhum antibiótico em uso no momento.'}
+            </div>
+            <div>
+              <strong>Recomendações técnicas / Observações de campo:</strong><br>
+              ${d.observacoes || 'Foi realizada a orientação em conceitos de boas práticas agropecuárias conforme IN 76/77 MAPA. Atestados de vacina e controle higiênico devem ser rigorosamente mantidos.'}
+            </div>
+          </div>
+
+          <!-- ASSINATURAS -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px;padding-top:16px;border-top:1px dashed #cbd5e1;text-align:center;font-size:12px">
+            <div>
+              <div style="border-top:1px solid #000;margin-top:30px;padding-top:6px;font-weight:700">
+                ${d.tecnico || 'Irai Pereira'}<br>
+                <span style="font-weight:normal;color:#64748b;font-size:11px">Departamento de Compra de Leite / Fomento Atalat</span>
+              </div>
+            </div>
+            <div>
+              <div style="border-top:1px solid #000;margin-top:30px;padding-top:6px;font-weight:700">
+                ${d.produtorResp || d.produtor}<br>
+                <span style="font-weight:normal;color:#64748b;font-size:11px">Produtor Rural / Responsável</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      `;
+
+      document.getElementById('report-printable-content').innerHTML = html;
+      switchView('report');
+    }
+
+    function editCurrentDiagnostic() {
+      if (currentId) editDiagnostic(currentId);
+    }
+
+    function exportData() {
+      let list = getDiagnostics();
+      let blob = new Blob([JSON.stringify(list, null, 2)], { type: 'application/json' });
+      let url = URL.createObjectURL(blob);
+      let a = document.createElement('a');
+      a.href = url;
+      a.download = 'atalat_pqfl_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // INICIALIZAÇÃO
+    window.addEventListener('DOMContentLoaded', () => {
+      buildQuestionBlocks();
+      renderList();
+    });
+  </script>
+</body>
+</html>

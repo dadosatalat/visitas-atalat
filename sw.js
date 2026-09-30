@@ -4,6 +4,7 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/pqfl.html',
   '/relatorio_pqfl_manoel_messias.html',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
