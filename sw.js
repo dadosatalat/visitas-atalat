@@ -6,6 +6,7 @@ const ASSETS_TO_CACHE = [
   '/manifest.json',
   '/pqfl.html',
   '/relatorio_pqfl_manoel_messias.html',
+  '/logo_atalat.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2'
 ];
 
