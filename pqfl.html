@@ -274,27 +274,34 @@
     }
 
     .question-row {
-      display: grid;
-      grid-template-columns: 40px 1fr auto;
-      gap: 12px;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      padding: 10px 12px;
-      border-radius: 6px;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
       margin-bottom: 6px;
       background: #f8fafc;
       border: 1px solid #f1f5f9;
-      transition: background 0.15s ease;
+      transition: all 0.15s ease;
     }
 
     .question-row:hover {
       background: #f1f5f9;
     }
 
+    .q-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      flex: 1;
+    }
+
     .q-num {
-      font-weight: 700;
-      font-size: 13px;
-      color: var(--text-muted);
-      text-align: center;
+      font-weight: 800;
+      font-size: 13.5px;
+      color: var(--primary);
+      min-width: 24px;
     }
 
     .q-text {
@@ -305,17 +312,18 @@
 
     .q-buttons {
       display: flex;
-      gap: 4px;
+      gap: 5px;
+      flex-shrink: 0;
     }
 
     .btn-toggle {
       width: 44px;
-      height: 32px;
+      height: 36px;
       border: 1px solid var(--border);
       background: white;
-      border-radius: 4px;
+      border-radius: 6px;
       font-weight: 800;
-      font-size: 12px;
+      font-size: 12.5px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
@@ -418,6 +426,460 @@
     .badge-danger { background: var(--nao-conforme-bg); color: #b91c1c; }
     .badge-warning { background: #fef3c7; color: #b45309; }
 
+    /* REPORT STRUCTURE CLASSES */
+    .report-paper {
+      background: white;
+      padding: 32px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .report-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #1e3a8a;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .report-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+      font-size: 13px;
+    }
+
+    .report-kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .report-checklist-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 11.5px;
+      margin-bottom: 20px;
+    }
+
+    .report-sig-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px dashed #cbd5e1;
+      font-size: 12px;
+    }
+
+    /* MOBILE CARDS FOR DIAGNOSTICS LIST */
+    .mobile-view-only {
+      display: none;
+    }
+    .desktop-view-only {
+      display: block;
+    }
+
+    .mobile-diagnostic-card {
+      background: white;
+      border: 1px solid var(--border-light);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .mdc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: 12.5px;
+    }
+
+    .mdc-date {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .mdc-body {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .mdc-producer {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .mdc-prop {
+      font-size: 13.5px;
+      color: var(--text);
+    }
+
+    .mdc-unit-tag {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .mdc-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+      background: #f8fafc;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .mdc-stat-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .mdc-stat-box .lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .mdc-stat-box strong {
+      font-size: 13px;
+      color: var(--secondary);
+    }
+
+    .mdc-alert-risk {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+    }
+
+    .mdc-info-ab {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11.5px;
+    }
+
+    .mdc-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 6px;
+      margin-top: 4px;
+      padding-top: 8px;
+      border-top: 1px solid #f1f5f9;
+    }
+
+    .mdc-btn {
+      padding: 10px 6px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border: 1px solid transparent;
+      min-height: 42px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .mdc-btn-view {
+      background: #eff6ff;
+      color: var(--primary);
+      border-color: #bfdbfe;
+    }
+
+    .mdc-btn-pdf {
+      background: #f0fdf4;
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+
+    .mdc-btn-edit {
+      background: #f8fafc;
+      color: #334155;
+      border-color: #cbd5e1;
+    }
+
+    .mdc-btn-del {
+      background: #fff5f5;
+      color: #dc2626;
+      border-color: #fecaca;
+      padding: 10px 12px;
+    }
+
+    /* QUESTION STATUS HIGHLIGHT CLASSES */
+    .question-row.answered-c {
+      border-left: 4px solid var(--conforme);
+      background: #f0fdf4;
+    }
+    .question-row.answered-nc {
+      border-left: 4px solid var(--nao-conforme);
+      background: #fef2f2;
+    }
+    .question-row.answered-na {
+      border-left: 4px solid var(--na);
+      background: #f8fafc;
+    }
+
+    /* RESPONSIVE: TABLETS & MOBILE (< 768px) */
+    @media (max-width: 768px) {
+      .desktop-view-only {
+        display: none !important;
+      }
+      .mobile-view-only {
+        display: block !important;
+      }
+      .report-paper {
+        padding: 18px 14px !important;
+      }
+      .report-grid-2 {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+      .report-kpi-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+      }
+      .report-checklist-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+      .report-sig-grid {
+        grid-template-columns: 1fr !important;
+        gap: 14px !important;
+      }
+      .report-header-flex {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+      }
+      .report-header-right {
+        text-align: left !important;
+        width: 100% !important;
+      }
+    }
+
+    /* RESPONSIVE: SMARTPHONES (< 640px) */
+    @media (max-width: 640px) {
+      body {
+        padding: 8px 6px !important;
+      }
+
+      .container {
+        padding: 0 !important;
+      }
+
+      /* TOP NAV BAR */
+      .top-nav {
+        padding: 12px 14px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        margin-bottom: 12px !important;
+      }
+
+      .brand-group {
+        justify-content: space-between !important;
+        width: 100% !important;
+      }
+
+      .nav-tabs {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 6px !important;
+      }
+
+      .nav-tabs .nav-btn {
+        justify-content: center !important;
+        padding: 10px 8px !important;
+        font-size: 13px !important;
+        text-align: center !important;
+      }
+
+      /* CARDS */
+      .card {
+        padding: 14px 12px !important;
+        margin-bottom: 12px !important;
+        border-radius: 10px !important;
+      }
+
+      .section-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+      }
+
+      /* FORM INPUTS & TOUCH TARGETS */
+      .form-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+      }
+
+      .form-grid > * {
+        grid-column: span 1 !important;
+      }
+
+      .form-group input, 
+      .form-group select, 
+      .form-group textarea {
+        font-size: 16px !important; /* Prevents auto-zoom in mobile Safari */
+        padding: 11px 12px !important;
+        border-radius: 8px !important;
+      }
+
+      /* QUESTIONS CHECKLIST */
+      .block-card {
+        padding: 12px 10px !important;
+        margin-bottom: 14px !important;
+      }
+
+      .block-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 4px !important;
+      }
+
+      .block-title {
+        font-size: 15px !important;
+      }
+
+      .block-score {
+        font-size: 11.5px !important;
+        padding: 3px 8px !important;
+      }
+
+      .question-row {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+        padding: 12px 10px !important;
+        margin-bottom: 8px !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 8px !important;
+      }
+
+      .q-content {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        font-size: 14px !important;
+      }
+
+      .q-num {
+        font-size: 14px !important;
+        color: var(--primary) !important;
+        font-weight: 800 !important;
+      }
+
+      .q-buttons {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 6px !important;
+        width: 100% !important;
+      }
+
+      .btn-toggle {
+        width: 100% !important;
+        height: 44px !important; /* Ideal thumb touch target */
+        font-size: 14px !important;
+        font-weight: 800 !important;
+        border-radius: 6px !important;
+      }
+
+      /* ANTIBIOTIC CHIPS */
+      .ab-chip {
+        padding: 9px 13px !important;
+        font-size: 13px !important;
+      }
+
+      /* BOTTOM FLOATING ACTION BAR */
+      .form-actions {
+        position: sticky !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        margin: 16px -6px -6px -6px !important;
+        padding: 12px 14px !important;
+        border-radius: 16px 16px 0 0 !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        backdrop-filter: blur(8px) !important;
+        box-shadow: 0 -4px 16px rgba(0,0,0,0.1) !important;
+        z-index: 100 !important;
+      }
+
+      .form-actions .btn-secondary {
+        grid-column: span 2 !important;
+        order: 3 !important;
+        padding: 10px !important;
+        justify-content: center !important;
+      }
+
+      .form-actions .btn-primary {
+        order: 1 !important;
+        padding: 12px 8px !important;
+        justify-content: center !important;
+        font-size: 13px !important;
+      }
+
+      .form-actions .btn-success {
+        order: 2 !important;
+        padding: 12px 8px !important;
+        justify-content: center !important;
+        font-size: 13px !important;
+      }
+
+      /* REPORT VIEW CONTROLS */
+      .report-actions-bar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 10px !important;
+      }
+      .report-actions-btns {
+        width: 100% !important;
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+      }
+      .report-actions-bar .nav-btn {
+        width: 100% !important;
+        justify-content: center !important;
+      }
+    }
+
     /* PRINT LAYOUT */
     @media print {
       @page {
@@ -450,6 +912,30 @@
         padding: 0 !important;
         max-width: 100% !important;
       }
+      .report-header-flex {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+      }
+      .report-header-right {
+        text-align: right !important;
+      }
+      .report-grid-2 {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+      }
+      .report-kpi-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+      }
+      .report-checklist-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+      }
+      .report-sig-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+      }
     }
   </style>
 </head>
@@ -462,7 +948,7 @@
         <a href="/" class="nav-btn" style="padding:6px 12px;font-size:12px">← Voltar às Visitas</a>
         <img src="logo_atalat.png" alt="Atalat" style="height:36px;width:auto;object-fit:contain">
         <div class="brand-title">Atalat PQFL</div>
-        <span class="version-tag">v2.7.0</span>
+        <span class="version-tag">v2.7.1</span>
       </div>
 
       <div class="nav-tabs">
@@ -486,7 +972,8 @@
         <input id="search-input" type="text" placeholder="🔍 Buscar por produtor, propriedade ou cidade..." style="width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:14px;" oninput="renderList()">
       </div>
 
-      <div style="overflow-x:auto">
+      <!-- TABELA DESKTOP / TABLET -->
+      <div style="overflow-x:auto" class="desktop-view-only">
         <table class="data-table">
           <thead>
             <tr>
@@ -503,6 +990,11 @@
             <!-- Renderizado via JS -->
           </tbody>
         </table>
+      </div>
+
+      <!-- CARDS TOUCH SCREEN PARA CELULARES (MOBILE) -->
+      <div id="diagnostic-mobile-cards" class="mobile-view-only">
+        <!-- Renderizado dinamicamente via JS -->
       </div>
     </div>
 
@@ -738,10 +1230,10 @@
 
     <!-- VIEW 3: RELATÓRIO OFICIAL PRONTO PARA IMPRESSÃO -->
     <div id="view-report" style="display:none">
-      <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:white;padding:12px 18px;border-radius:10px;border:1px solid var(--border-light);box-shadow:0 2px 6px rgba(0,0,0,0.04);flex-wrap:wrap;gap:10px">
-        <button class="nav-btn" onclick="switchView('list')">← Voltar à Lista de Diagnósticos</button>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn-main btn-secondary" onclick="editCurrentDiagnostic()" style="padding:9px 18px;font-size:13px;border-color:#cbd5e1">✏️ Editar este Diagnóstico</button>
+      <div class="no-print report-actions-bar" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;background:white;padding:12px 18px;border-radius:10px;border:1px solid var(--border-light);box-shadow:0 2px 6px rgba(0,0,0,0.04);flex-wrap:wrap;gap:10px">
+        <button class="nav-btn" onclick="switchView('list')">← Voltar à Lista</button>
+        <div class="report-actions-btns" style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-main btn-secondary" onclick="editCurrentDiagnostic()" style="padding:9px 18px;font-size:13px;border-color:#cbd5e1">✏️ Editar</button>
           <button class="btn-main btn-primary" onclick="exportPdf(currentId)" style="padding:9px 20px;font-size:13px;background:#15803d;border-color:#15803d">📄 Exportar / Salvar PDF</button>
         </div>
       </div>
@@ -903,9 +1395,11 @@
 
         b.itens.forEach(q => {
           blockHtml += `
-            <div class="question-row">
-              <div class="q-num">${q.id}</div>
-              <div class="q-text">${q.text}</div>
+            <div class="question-row" id="q-row-${q.id}">
+              <div class="q-content">
+                <span class="q-num">${q.id}.</span>
+                <span class="q-text">${q.text}</span>
+              </div>
               <div class="q-buttons">
                 <button type="button" class="btn-toggle c" id="btn-q-${q.id}-c" onclick="setAnswer(${q.id}, 'C')">C</button>
                 <button type="button" class="btn-toggle nc" id="btn-q-${q.id}-nc" onclick="setAnswer(${q.id}, 'NC')">NC</button>
@@ -926,6 +1420,11 @@
         let btn = document.getElementById(`btn-q-${qId}-${t}`);
         if (btn) btn.classList.toggle('selected', t.toUpperCase() === val);
       });
+      let row = document.getElementById(`q-row-${qId}`);
+      if (row) {
+        row.classList.remove('answered-c', 'answered-nc', 'answered-na');
+        if (val) row.classList.add(`answered-${val.toLowerCase()}`);
+      }
       updateScores();
     }
 
@@ -1149,6 +1648,8 @@
           let btn = document.getElementById(`btn-q-${q.id}-${t}`);
           if (btn) btn.classList.remove('selected');
         });
+        let row = document.getElementById(`q-row-${q.id}`);
+        if (row) row.classList.remove('answered-c', 'answered-nc', 'answered-na');
       });
       updateScores();
       updateAntibioticChipUI();
@@ -1197,6 +1698,11 @@
           let btn = document.getElementById(`btn-q-${q.id}-${t}`);
           if (btn) btn.classList.toggle('selected', ans === t.toUpperCase());
         });
+        let row = document.getElementById(`q-row-${q.id}`);
+        if (row) {
+          row.classList.remove('answered-c', 'answered-nc', 'answered-na');
+          if (ans) row.classList.add(`answered-${ans.toLowerCase()}`);
+        }
       });
       updateScores();
       updateAntibioticChipUI();
@@ -1298,6 +1804,7 @@
     function renderList() {
       let list = getDiagnostics();
       let tbody = document.getElementById('diagnostic-tbody');
+      let mCards = document.getElementById('diagnostic-mobile-cards');
       let search = (document.getElementById('search-input')?.value || '').toLowerCase();
 
       let filtered = list.filter(d => {
@@ -1305,50 +1812,129 @@
         return str.includes(search);
       });
 
-      if (!filtered.length) {
-        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">Nenhum diagnóstico encontrado. Clique em <strong>"Novo Diagnóstico"</strong> para criar o primeiro!</td></tr>`;
-        return;
+      // 1. RENDERIZAR TABELA DESKTOP
+      if (tbody) {
+        if (!filtered.length) {
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted)">Nenhum diagnóstico encontrado. Clique em <strong>"Novo Diagnóstico"</strong> para criar o primeiro!</td></tr>`;
+        } else {
+          tbody.innerHTML = filtered.map(d => {
+            let stats = calculateStats(d.answers);
+            let hasAntibioticRisk = d.answers && d.answers[13] === 'NC' && d.antibioticos;
+            let formattedDate = d.data ? d.data.split('-').reverse().join('/') : '--';
+
+            return `
+              <tr>
+                <td><strong>${formattedDate}</strong></td>
+                <td>
+                  <strong>${d.produtor}</strong><br>
+                  <small style="color:var(--text-muted)">${d.telefone || 'Sem tel.'} • ${d.idade ? d.idade + ' anos' : ''}</small>
+                </td>
+                <td>
+                  ${d.propriedade}<br>
+                  <small style="color:var(--text-muted)">${d.cidade} - MG &bull; <strong style="color:var(--primary)">${d.unidade || 'Matriz'}</strong></small>
+                </td>
+                <td>
+                  <strong>${d.producao || '0'} L/dia</strong><br>
+                  <small style="color:var(--text-muted)">${d.vl || '0'} vacas em lactação</small>
+                </td>
+                <td>
+                  <span class="badge ${stats.pct >= 70 ? 'badge-success' : stats.pct >= 50 ? 'badge-warning' : 'badge-danger'}">
+                    ${stats.pct}% (${stats.c}C / ${stats.nc}NC)
+                  </span>
+                </td>
+                <td>
+                  ${hasAntibioticRisk ? 
+                    `<span class="badge badge-danger" title="Usa ${d.antibioticos} sem registro de carência!">⚠️ Risco Carência (${d.antibioticos})</span>` : 
+                    (d.antibioticos ? `<span class="badge" style="background:#f1f5f9;color:#334155">${d.antibioticos}</span>` : `<span style="color:var(--text-muted);font-size:12px">Nenhum</span>`)}
+                </td>
+                <td style="text-align:right;white-space:nowrap">
+                  <button class="nav-btn" style="background:#eff6ff;color:var(--primary);border-color:#bfdbfe;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="showReport('${d.id}')" title="Visualizar Relatório Oficial">👁️ Visualizar</button>
+                  <button class="nav-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="exportPdf('${d.id}')" title="Exportar Relatório Oficial em PDF">📄 PDF</button>
+                  <button class="nav-btn" style="background:#f8fafc;color:#334155;border-color:#cbd5e1;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="editDiagnostic('${d.id}')" title="Editar dados e checklist deste diagnóstico">✏️ Editar</button>
+                  <button class="nav-btn" style="color:#dc2626;border-color:#fecaca;padding:6px 10px;font-size:12.5px" onclick="deleteDiagnostic('${d.id}')" title="Excluir Diagnóstico">🗑️</button>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
       }
 
-      tbody.innerHTML = filtered.map(d => {
-        let stats = calculateStats(d.answers);
-        let hasAntibioticRisk = d.answers && d.answers[13] === 'NC' && d.antibioticos;
-        let formattedDate = d.data ? d.data.split('-').reverse().join('/') : '--';
+      // 2. RENDERIZAR CARDS TOUCH PARA CELULARES
+      if (mCards) {
+        if (!filtered.length) {
+          mCards.innerHTML = `
+            <div style="text-align:center;padding:24px 16px;background:white;border-radius:12px;border:1px dashed var(--border);color:var(--text-muted);font-size:13.5px">
+              Nenhum diagnóstico encontrado.<br>Toque em <strong>"Novo Diagnóstico"</strong> para cadastrar.
+            </div>
+          `;
+        } else {
+          mCards.innerHTML = filtered.map(d => {
+            let stats = calculateStats(d.answers);
+            let hasAntibioticRisk = d.answers && d.answers[13] === 'NC' && d.antibioticos;
+            let formattedDate = d.data ? d.data.split('-').reverse().join('/') : '--';
+            let vl = parseFloat(d.vl) || 0;
+            let prod = parseFloat(d.producao) || 0;
+            let mediaPorVaca = vl > 0 ? (prod / vl).toFixed(1) : '0';
 
-        return `
-          <tr>
-            <td><strong>${formattedDate}</strong></td>
-            <td>
-              <strong>${d.produtor}</strong><br>
-              <small style="color:var(--text-muted)">${d.telefone || 'Sem tel.'} • ${d.idade ? d.idade + ' anos' : ''}</small>
-            </td>
-            <td>
-              ${d.propriedade}<br>
-              <small style="color:var(--text-muted)">${d.cidade} - MG &bull; <strong style="color:var(--primary)">${d.unidade || 'Matriz'}</strong></small>
-            </td>
-            <td>
-              <strong>${d.producao || '0'} L/dia</strong><br>
-              <small style="color:var(--text-muted)">${d.vl || '0'} vacas em lactação</small>
-            </td>
-            <td>
-              <span class="badge ${stats.pct >= 70 ? 'badge-success' : stats.pct >= 50 ? 'badge-warning' : 'badge-danger'}">
-                ${stats.pct}% (${stats.c}C / ${stats.nc}NC)
-              </span>
-            </td>
-            <td>
-              ${hasAntibioticRisk ? 
-                `<span class="badge badge-danger" title="Usa ${d.antibioticos} sem registro de carência!">⚠️ Risco Carência (${d.antibioticos})</span>` : 
-                (d.antibioticos ? `<span class="badge" style="background:#f1f5f9;color:#334155">${d.antibioticos}</span>` : `<span style="color:var(--text-muted);font-size:12px">Nenhum</span>`)}
-            </td>
-            <td style="text-align:right;white-space:nowrap">
-              <button class="nav-btn" style="background:#eff6ff;color:var(--primary);border-color:#bfdbfe;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="showReport('${d.id}')" title="Visualizar Relatório Oficial">👁️ Visualizar</button>
-              <button class="nav-btn" style="background:#f0fdf4;color:#15803d;border-color:#bbf7d0;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="exportPdf('${d.id}')" title="Exportar Relatório Oficial em PDF">📄 PDF</button>
-              <button class="nav-btn" style="background:#f8fafc;color:#334155;border-color:#cbd5e1;font-weight:700;padding:6px 12px;font-size:12.5px" onclick="editDiagnostic('${d.id}')" title="Editar dados e checklist deste diagnóstico">✏️ Editar</button>
-              <button class="nav-btn" style="color:#dc2626;border-color:#fecaca;padding:6px 10px;font-size:12.5px" onclick="deleteDiagnostic('${d.id}')" title="Excluir Diagnóstico">🗑️</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
+            return `
+              <div class="mobile-diagnostic-card">
+                <div class="mdc-header">
+                  <span class="mdc-date">📅 ${formattedDate} &bull; <strong style="color:var(--primary)">${d.unidade || 'Matriz'}</strong></span>
+                  <span class="badge ${stats.pct >= 70 ? 'badge-success' : stats.pct >= 50 ? 'badge-warning' : 'badge-danger'}">
+                    ${stats.pct}% (${stats.c}C / ${stats.nc}NC)
+                  </span>
+                </div>
+
+                <div class="mdc-body">
+                  <div class="mdc-producer">${d.produtor}</div>
+                  <div class="mdc-prop">🏡 ${d.propriedade} &bull; ${d.cidade} - MG</div>
+                  ${d.telefone ? `<div class="mdc-unit-tag">📞 <a href="tel:${d.telefone}" style="color:var(--text);text-decoration:none">${d.telefone}</a> ${d.idade ? `&bull; ${d.idade} anos` : ''}</div>` : ''}
+                </div>
+
+                <div class="mdc-stats-grid">
+                  <div class="mdc-stat-box">
+                    <span class="lbl">Produção</span>
+                    <strong>${d.producao || 0} L/dia</strong>
+                  </div>
+                  <div class="mdc-stat-box">
+                    <span class="lbl">Média/Vaca</span>
+                    <strong>${mediaPorVaca} L/d</strong>
+                  </div>
+                  <div class="mdc-stat-box">
+                    <span class="lbl">Lactação</span>
+                    <strong>${d.vl || 0} vacas</strong>
+                  </div>
+                </div>
+
+                ${hasAntibioticRisk ? `
+                  <div class="mdc-alert-risk">
+                    ⚠️ <strong>Alerta Carência:</strong> Usa ${d.antibioticos} sem registro de período de carência!
+                  </div>
+                ` : (d.antibioticos ? `
+                  <div class="mdc-info-ab">
+                    💊 <strong>Medicamentos:</strong> ${d.antibioticos}
+                  </div>
+                ` : '')}
+
+                <div class="mdc-actions">
+                  <button class="mdc-btn mdc-btn-view" onclick="showReport('${d.id}')">
+                    👁️ Ver
+                  </button>
+                  <button class="mdc-btn mdc-btn-pdf" onclick="exportPdf('${d.id}')">
+                    📄 PDF
+                  </button>
+                  <button class="mdc-btn mdc-btn-edit" onclick="editDiagnostic('${d.id}')">
+                    ✏️ Editar
+                  </button>
+                  <button class="mdc-btn mdc-btn-del" onclick="deleteDiagnostic('${d.id}')" title="Excluir Diagnóstico">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
     }
 
     function showReport(id) {
@@ -1398,7 +1984,7 @@
       let html = `
         <div class="report-paper" style="background:white;padding:32px;border-radius:12px;border:1px solid #cbd5e1;box-shadow:0 4px 16px rgba(0,0,0,0.06);max-width:960px;margin:0 auto">
           <!-- CABEÇALHO OFICIAL ATALAT -->
-          <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #1e3a8a;padding-bottom:16px;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <div class="report-header-flex" style="border-bottom:2px solid #1e3a8a;padding-bottom:16px;margin-bottom:20px">
             <div style="display:flex;align-items:center;gap:14px">
               <img src="logo_atalat.png" alt="Laticínios Atalat" style="height:65px;width:auto;object-fit:contain">
               <div>
@@ -1406,7 +1992,7 @@
                 <div style="font-size:12px;font-weight:700;color:#64748b">MATRIZ • ATALÉIA - MINAS GERAIS • QUALIDADE & COMPRA DE LEITE</div>
               </div>
             </div>
-            <div style="text-align:right">
+            <div class="report-header-right">
               <div style="background:#eff6ff;color:#1e3a8a;padding:5px 12px;border-radius:6px;font-weight:700;font-size:12px;border:1px solid #bfdbfe;display:inline-block">
                 RELATÓRIO DE COMPRA DE LEITE E DIAGNÓSTICO - PQFL
               </div>
@@ -1418,7 +2004,7 @@
           </div>
 
           <!-- DADOS GERAIS -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;font-size:13px">
+          <div class="report-grid-2">
             <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0">
               <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700;width:35%">Produtor:</td><td style="padding:6px 10px;font-weight:700;color:#1e3a8a">${d.produtor}</td></tr>
               <tr><td style="padding:6px 10px;background:#f8fafc;font-weight:700">Propriedade:</td><td style="padding:6px 10px">${d.propriedade}</td></tr>
@@ -1436,7 +2022,7 @@
           </div>
 
           <!-- INDICADORES ZOOTÉCNICOS -->
-          <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:10px;margin-bottom:20px;text-align:center">
+          <div class="report-kpi-grid">
             <div style="background:#f1f5f9;padding:10px;border-radius:6px;border-left:4px solid #1e3a8a">
               <div style="font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase">Produção Diária</div>
               <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:2px">${d.producao || 0} L/dia</div>
@@ -1501,7 +2087,7 @@
 
           <!-- CHECKLIST COMPLETO DOS 40 ITENS EM 2 COLUNAS (IDÊNTICO À FICHA DE PAPEL) -->
           <div style="font-weight:700;color:#1e3a8a;margin-bottom:8px;font-size:14px">CHECKLIST DETALHADO DOS 40 ITENS</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:11.5px;margin-bottom:20px">
+          <div class="report-checklist-grid">
             <!-- COLUNA ESQUERDA: 1 a 20 -->
             <table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0">
               <thead>
@@ -1565,7 +2151,7 @@
           </div>
 
           <!-- ASSINATURAS NO FORMATO OFICIAL DA FICHA ATALAT -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:28px;padding-top:16px;border-top:1px dashed #cbd5e1;font-size:12px">
+          <div class="report-sig-grid">
             <!-- ASSINATURA COMPRA DE LEITE -->
             <div style="border:1px solid #94a3b8;border-radius:4px;padding:8px 12px;background:#fafafa">
               <div style="font-size:11px;color:#64748b;font-weight:700">Ass.</div>
