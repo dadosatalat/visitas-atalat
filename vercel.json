@@ -3,6 +3,10 @@
   "name": "atalat-visitas",
   "rewrites": [
     {
+      "source": "/pqfl",
+      "destination": "/pqfl.html"
+    },
+    {
       "source": "/((?!sw\\.js|manifest\\.json|.*\\..*).*)",
       "destination": "/index.html"
     }
