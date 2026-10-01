@@ -1765,7 +1765,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.7.2';
+const APP_VERSION = 'v2.7.3';
 const APP_BUILD_DATE = '01/10/2026';
 
 // STORAGE & CONFIG KEYS
@@ -1907,8 +1907,8 @@ function initSupabase() {
               data.forEach(u => { if (u && u.id) map.set(u.id, u); });
               users = [...map.values()];
               saveUsers();
-              if (view === 'list' && $('#modal-container')?.innerHTML.includes('Gestão da Equipe')) {
-                openUsersModal();
+              if (view === 'team' || view === 'list') {
+                render();
               }
             }
           })
@@ -2348,121 +2348,187 @@ VALUES
 )
 ON CONFLICT (usuario) DO NOTHING;`;
 
-// MEMBER APPROVALS MODAL
-async function openUsersModal() {
-  let modal = $('#modal-container');
-  
-  // Refresh users from Supabase if connected
-  if (supabaseClient) {
-    try {
-      const { data, error } = await supabaseClient.from('usuarios').select('*').order('created_at', { ascending: false });
-      if (error && error.code === 'PGRST205') {
-        usersTableMissing = true;
-      } else if (data && Array.isArray(data)) {
-        usersTableMissing = false;
-        let map = new Map();
-        DEFAULT_USERS.forEach(u => map.set(u.id, { ...u }));
-        data.forEach(u => {
-          if (u && u.id) map.set(u.id, u);
-        });
-        users = [...map.values()];
-        saveUsers();
-      }
-    } catch (e) {
-      console.warn('Erro ao atualizar usuários:', e);
+// REFRESH USERS FROM SUPABASE
+async function refreshUsersList() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient.from('usuarios').select('*').order('created_at', { ascending: false });
+    if (error && error.code === 'PGRST205') {
+      usersTableMissing = true;
+    } else if (data && Array.isArray(data)) {
+      usersTableMissing = false;
+      let map = new Map();
+      DEFAULT_USERS.forEach(u => map.set(u.id, { ...u }));
+      data.forEach(u => {
+        if (u && u.id) map.set(u.id, u);
+      });
+      users = [...map.values()];
+      saveUsers();
     }
+  } catch (e) {
+    console.warn('Erro ao atualizar usuários:', e);
   }
-  
+}
+
+// TEAM MANAGEMENT & AUTHORIZATIONS DEDICATED PAGE (VIEW = 'team')
+function teamHTML() {
   let pending = users.filter(u => u.status === 'pendente');
   let approved = users.filter(u => u.status === 'aprovado');
   let blocked = users.filter(u => u.status === 'bloqueado');
 
-  modal.innerHTML = `
-    <div class="modal-overlay">
-      <div class="modal">
-        <div class="modal-top-bar">
-          <h2>Gestão da Equipe & Autorizações</h2>
-          <button class="modal-close-btn" data-act="close-modal" title="Fechar">✕</button>
-        </div>
-        <p class="muted small">Autorize novos compradores e técnicos de campo, gerencie cargos ou redefina senhas.</p>
-
-        <!-- If Table is Missing from Supabase Warning Banner -->
-        ${usersTableMissing ? `
-          <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:14px;margin:16px 0;font-size:13px;color:#92400E">
-            <div style="font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px">
-              ⚠️ Tabela de Usuários ainda não criada no seu Supabase!
-            </div>
-            <p style="margin:0 0 10px;font-size:12px;line-height:1.4">
-              Por isso, as novas solicitações feitas por outros colaboradores no celular ainda não chegam à nuvem. Para habilitar agora, execute o script SQL abaixo no Supabase.
-            </p>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="primary" data-act="copy-users-sql" style="padding:6px 12px;font-size:12px">📋 Copiar Script SQL de Usuários</button>
-              <a href="https://supabase.com/dashboard/project/lfrdwmrkzlrvzvhmqvhz/sql" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;padding:6px 12px;background:#059669;color:white;text-decoration:none;border-radius:var(--radius-xs);font-size:12px;font-weight:600">🚀 Abrir Supabase SQL Editor ↗</a>
-            </div>
+  return `
+    <div class="wrap" style="max-width:920px">
+      <div class="top">
+        <div>
+          <button class="ghost" data-act="all" style="padding-left:0;margin-bottom:8px;font-size:13.5px;font-weight:600">← Voltar às Visitas</button>
+          <div class="brand">LATICÍNIOS ATALAT · CONTROLE DE ACESSO</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <h1>Gestão da Equipe & Autorizações</h1>
+            <span class="badge" style="background:#EBF3FB;color:var(--primary);font-size:11px;padding:3px 8px;border:1px solid #D0E1F3">Administração</span>
           </div>
-        ` : ''}
+          <p class="muted" style="margin:4px 0 0">Autorize novos compradores e técnicos de campo, gerencie cargos, permissões e redefina senhas com segurança.</p>
+        </div>
+        <div class="top-actions-grid no-print" style="margin:0">
+          <button class="secondary" data-act="refresh-users" title="Atualizar lista de usuários da nuvem">🔄 Sincronizar Equipe</button>
+          <button class="primary" data-act="all">← Voltar</button>
+        </div>
+      </div>
 
-        <!-- Pending Section -->
-        <h3 style="margin-top:20px;color:var(--amber)">⏳ Solicitações Pendentes de Autorização (${pending.length})</h3>
+      <!-- Offline Status Banner -->
+      ${offlineBannerHTML()}
+
+      <!-- If Table is Missing from Supabase Warning Banner -->
+      ${usersTableMissing ? `
+        <div style="background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radius-sm);padding:16px;margin:16px 0;font-size:13px;color:#92400E">
+          <div style="font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:6px;font-size:14px">
+            ⚠️ Tabela de Usuários ainda não criada no seu Supabase!
+          </div>
+          <p style="margin:0 0 10px;font-size:13px;line-height:1.5">
+            Por isso, as novas solicitações feitas por outros colaboradores no celular ainda não chegam à nuvem. Para habilitar agora, execute o script SQL abaixo no Supabase.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="primary" data-act="copy-users-sql" style="padding:7px 14px;font-size:13px">📋 Copiar Script SQL de Usuários</button>
+            <a href="https://supabase.com/dashboard/project/lfrdwmrkzlrvzvhmqvhz/sql" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;padding:7px 14px;background:#059669;color:white;text-decoration:none;border-radius:var(--radius-xs);font-size:13px;font-weight:600">🚀 Abrir Supabase SQL Editor ↗</a>
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Pending Section -->
+      <section style="margin-top:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <h2 style="font-size:18px;margin:0;color:var(--amber);display:flex;align-items:center;gap:8px">
+            ⏳ Solicitações Pendentes de Autorização 
+            <span class="badge" style="background:#FEF3C7;color:#92400E;font-size:12px">${pending.length}</span>
+          </h2>
+        </div>
         ${pending.length ? `
-          <div style="display:grid;gap:10px;margin-bottom:20px">
+          <div style="display:grid;gap:12px;margin-bottom:24px">
             ${pending.map(u => `
-              <div class="card" style="padding:14px">
+              <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-left:4px solid var(--amber)">
                 <div>
-                  <strong>${esc(u.nome)}</strong> (@${esc(u.usuario)})<br>
-                  <span class="muted small">${esc(u.cargo || 'Comprador')} · Contato: ${esc(u.email_contato || 'Não informado')}</span>
+                  <div style="font-size:16px;font-weight:700;color:var(--ink)">${esc(u.nome)} <span class="muted" style="font-size:13px;font-weight:normal">(@${esc(u.usuario)})</span></div>
+                  <div class="muted small" style="margin-top:2px">
+                    💼 Cargo: <strong>${esc(u.cargo || 'Comprador de Leite')}</strong> · 📞 Contato: ${esc(u.email_contato || 'Não informado')}
+                  </div>
+                  <div class="muted small" style="margin-top:2px;font-size:11px">
+                    Registrado em: ${u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : 'Hoje'}
+                  </div>
                 </div>
-                <div class="actions">
-                  <button class="primary" data-act="approve-user" data-uid="${esc(u.id)}" style="padding:6px 12px;font-size:13px">✓ Autorizar Acesso</button>
-                  <button class="ghost danger-btn" data-act="reject-user" data-uid="${esc(u.id)}" style="padding:6px 12px;font-size:13px">✕ Recusar</button>
+                <div class="actions" style="gap:8px">
+                  <button class="primary" data-act="approve-user" data-uid="${esc(u.id)}" style="padding:8px 16px;font-size:13px">✓ Autorizar Acesso</button>
+                  <button class="ghost danger-btn" data-act="reject-user" data-uid="${esc(u.id)}" style="padding:8px 14px;font-size:13px">✕ Recusar</button>
                 </div>
               </div>
             `).join('')}
           </div>
-        ` : '<p class="muted small" style="margin-bottom:20px">Nenhuma solicitação de acesso pendente no momento.</p>'}
+        ` : `
+          <div style="background:#F9FAFC;border:1px dashed #D0D7DE;border-radius:var(--radius-sm);padding:20px;text-align:center;color:var(--muted);margin-bottom:24px;font-size:13.5px">
+            ✅ Nenhuma solicitação de acesso pendente no momento. Todos os técnicos cadastrados estão regularizados.
+          </div>
+        `}
+      </section>
 
-        <!-- Approved Members Section -->
-        <h3>👥 Membros Autorizados (${approved.length})</h3>
-        <div style="display:grid;gap:10px;max-height:260px;overflow-y:auto;margin-bottom:20px">
+      <!-- Approved Members Section -->
+      <section style="margin-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <h2 style="font-size:18px;margin:0;color:var(--ink);display:flex;align-items:center;gap:8px">
+            👥 Membros Ativos & Autorizados 
+            <span class="badge" style="background:#EBF3FB;color:var(--primary);font-size:12px">${approved.length}</span>
+          </h2>
+        </div>
+        <div style="display:grid;gap:12px;margin-bottom:28px">
           ${approved.map(u => `
-            <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+            <div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-left:4px solid ${u.role === 'admin' ? '#059669' : 'var(--primary)'}">
               <div>
-                <strong>${esc(u.nome)}</strong> ${u.role === 'admin' ? '<span class="badge badge-admin">Admin</span>' : ''}<br>
-                <span class="muted small">${esc(u.cargo || 'Comprador')} · @${esc(u.usuario)}</span>
+                <div style="font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px">
+                  ${esc(u.nome)}
+                  ${u.role === 'admin' ? '<span class="badge badge-admin">Administrador</span>' : '<span class="badge" style="background:#F1F5F9;color:#475569;font-size:11px">Equipe de Campo</span>'}
+                  ${currentUser && currentUser.id === u.id ? '<span class="badge" style="background:#E0E7FF;color:#3730A3;font-size:11px">Sua Conta</span>' : ''}
+                </div>
+                <div class="muted small" style="margin-top:3px">
+                  ${esc(u.cargo || 'Comprador de Leite')} · <strong>@${esc(u.usuario)}</strong>
+                  ${u.email_contato ? ` · ✉️ ${esc(u.email_contato)}` : ''}
+                </div>
               </div>
               <div class="actions" style="gap:6px;flex-wrap:wrap">
-                <button class="ghost" data-act="open-change-password-modal" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px" title="Redefinir senha deste usuário">🔑 Senha</button>
-                ${u.role !== 'admin' ? `<button class="ghost" data-act="toggle-admin" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Tornar Admin</button>` : ''}
-                ${u.id !== (currentUser ? currentUser.id : '') ? `<button class="ghost danger-btn" data-act="block-user" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Bloquear</button>` : '<span class="muted small" style="padding:4px 6px">(Você)</span>'}
+                <button class="secondary" data-act="open-change-password-modal" data-uid="${esc(u.id)}" style="font-size:12.5px;padding:6px 12px" title="Redefinir senha deste colaborador">🔑 Redefinir Senha</button>
+                ${u.role !== 'admin' ? `<button class="ghost" data-act="toggle-admin" data-uid="${esc(u.id)}" style="font-size:12.5px;padding:6px 12px" title="Conceder permissões totais de administrador">⭐ Tornar Admin</button>` : ''}
+                ${u.id !== (currentUser ? currentUser.id : '') ? `<button class="ghost danger-btn" data-act="block-user" data-uid="${esc(u.id)}" style="font-size:12.5px;padding:6px 12px">🚫 Bloquear</button>` : ''}
               </div>
             </div>
           `).join('')}
         </div>
+      </section>
 
-        ${blocked.length ? `
-          <h3 style="margin-top:16px;color:var(--danger)">🚫 Membros Bloqueados (${blocked.length})</h3>
-          <div style="display:grid;gap:10px;max-height:160px;overflow-y:auto;margin-bottom:20px">
+      <!-- Blocked Members Section (if any) -->
+      ${blocked.length ? `
+        <section style="margin-top:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h2 style="font-size:18px;margin:0;color:var(--danger);display:flex;align-items:center;gap:8px">
+              🚫 Colaboradores Bloqueados
+              <span class="badge" style="background:#FEE2E2;color:#991B1B;font-size:12px">${blocked.length}</span>
+            </h2>
+          </div>
+          <div style="display:grid;gap:12px;margin-bottom:28px">
             ${blocked.map(u => `
-              <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+              <div class="card" style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-left:4px solid var(--danger);opacity:0.85">
                 <div>
-                  <strong>${esc(u.nome)}</strong> <span class="badge badge-draft">Bloqueado</span><br>
-                  <span class="muted small">${esc(u.cargo || 'Comprador')} · @${esc(u.usuario)}</span>
+                  <div style="font-size:15px;font-weight:700">
+                    ${esc(u.nome)} <span class="badge badge-draft">Acesso Bloqueado</span>
+                  </div>
+                  <div class="muted small" style="margin-top:3px">
+                    ${esc(u.cargo || 'Comprador')} · @${esc(u.usuario)}
+                  </div>
                 </div>
                 <div class="actions" style="gap:6px">
-                  <button class="primary" data-act="approve-user" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Desbloquear</button>
-                  <button class="ghost danger-btn" data-act="reject-user" data-uid="${esc(u.id)}" style="font-size:12px;padding:4px 8px">Excluir</button>
+                  <button class="primary" data-act="approve-user" data-uid="${esc(u.id)}" style="font-size:12.5px;padding:6px 12px">✓ Desbloquear Acesso</button>
+                  <button class="ghost danger-btn" data-act="reject-user" data-uid="${esc(u.id)}" style="font-size:12.5px;padding:6px 12px">🗑️ Excluir Definitivamente</button>
                 </div>
               </div>
             `).join('')}
           </div>
-        ` : ''}
+        </section>
+      ` : ''}
 
-        <div class="toolbar" style="justify-content:flex-end">
-          <button class="primary" data-act="close-modal">Fechar</button>
-        </div>
+      <div class="toolbar no-print" style="justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="ghost" data-act="all">← Voltar às Visitas</button>
+        <button class="secondary" data-act="refresh-users">🔄 Atualizar Dados</button>
       </div>
+
+      <footer style="text-align:center;padding:32px 16px 20px;color:var(--muted);font-size:12px" class="no-print">
+        🥛 Laticínios Atalat · Gestão de Equipe & Acessos · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
+      </footer>
     </div>
   `;
+}
+
+async function openUsersModal() {
+  view = 'team';
+  report = null;
+  window.scrollTo(0, 0);
+  render();
+  await refreshUsersList();
+  if (view === 'team') render();
 }
 
 function openSettingsModal() {
@@ -2619,6 +2685,7 @@ async function handleSaveChangePassword(targetUid) {
   await updatePassword(targetUid, p1);
   $('#modal-container').innerHTML = '';
   toast('✅ Senha atualizada com sucesso!');
+  if (view === 'team') render();
 }
 
 async function approveUser(uid) {
@@ -2635,7 +2702,8 @@ async function approveUser(uid) {
     } catch (e) {}
   }
   toast(`Acesso autorizado para ${u.nome}!`);
-  openUsersModal();
+  if (view === 'team') render();
+  else openUsersModal();
 }
 
 async function rejectUser(uid) {
@@ -2648,7 +2716,8 @@ async function rejectUser(uid) {
   users = users.filter(x => x.id !== uid);
   saveUsers();
   toast('Solicitação recusada.');
-  openUsersModal();
+  if (view === 'team') render();
+  else openUsersModal();
 }
 
 async function blockUser(uid) {
@@ -2663,7 +2732,8 @@ async function blockUser(uid) {
     } catch (e) {}
   }
   toast(`Usuário ${u.nome} bloqueado.`);
-  openUsersModal();
+  if (view === 'team') render();
+  else openUsersModal();
 }
 
 async function toggleAdmin(uid) {
@@ -2677,7 +2747,8 @@ async function toggleAdmin(uid) {
     } catch (e) {}
   }
   toast(`${u.nome} agora é Administrador!`);
-  openUsersModal();
+  if (view === 'team') render();
+  else openUsersModal();
 }
 
 // LOGIN & REQUEST ACCESS SCREEN
@@ -4240,6 +4311,8 @@ function render() {
     root.innerHTML = listHTML();
   } else if (view === 'dashboard') {
     root.innerHTML = dashboardHTML();
+  } else if (view === 'team') {
+    root.innerHTML = teamHTML();
   } else if (view === 'picker') {
     root.innerHTML = `
       <div class="wrap" style="max-width:680px">
@@ -4379,6 +4452,13 @@ document.addEventListener('click', async e => {
   }
   else if (a === 'open-users-modal') {
     openUsersModal();
+  }
+  else if (a === 'refresh-users') {
+    toast('Atualizando lista de usuários...');
+    refreshUsersList().then(() => {
+      if (view === 'team') render();
+      toast('Lista de usuários atualizada!');
+    });
   }
   else if (a === 'open-change-password-modal') {
     openChangePasswordModal(el.dataset.uid);
