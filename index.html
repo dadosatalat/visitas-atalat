@@ -1788,7 +1788,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.7.4';
+const APP_VERSION = 'v2.7.5';
 const APP_BUILD_DATE = '02/10/2026';
 
 // STORAGE & CONFIG KEYS
@@ -2821,16 +2821,6 @@ function settingsHTML() {
           </div>
           <button class="ghost" data-act="custom-builder" style="white-space:nowrap;padding:9px 16px">➕ Novo Tipo</button>
         </div>
-
-        ${currentUser && currentUser.role === 'admin' ? `
-          <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;background:#F9FAFC;flex-wrap:wrap;gap:12px">
-            <div style="max-width:560px">
-              <strong style="font-size:16px">✨ Dados de Demonstração</strong><br>
-              <span class="muted small">Carregar 12 visitas realistas para treinamento de equipe na rota Ataléia/MG.</span>
-            </div>
-            <button class="ghost" data-act="load-demo" style="white-space:nowrap;padding:9px 16px">Carregar Dados Exemplo</button>
-          </div>
-        ` : ''}
       </div>
 
       <div class="toolbar no-print" style="justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
@@ -4042,10 +4032,9 @@ function listHTML() {
       ` : `
         <div class="empty">
           <p style="font-size:18px;font-weight:600;margin:0 0 6px">Nenhuma visita encontrada</p>
-          <p class="muted" style="margin:0 0 16px">Clique em "Nova Visita" para registrar ou carregue dados de demonstração.</p>
+          <p class="muted" style="margin:0 0 16px">Clique no botão abaixo para registrar a primeira visita técnica.</p>
           <div style="display:flex;gap:10px;justify-content:center">
             <button class="primary" data-act="pick">＋ Iniciar Nova Visita</button>
-            <button data-act="load-demo">✨ Carregar Dados de Exemplo</button>
           </div>
         </div>
       `}

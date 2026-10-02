@@ -1,5 +1,5 @@
 // Service Worker para Atalat Visitas (Offline-First)
-const CACHE_NAME = 'atalat-visitas-v2.7.4';
+const CACHE_NAME = 'atalat-visitas-v2.7.5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
