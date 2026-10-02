@@ -772,6 +772,10 @@
     
     /* Dashboard Layout */
     .dashboard {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
     .panel {
       background: white;
       border: 1px solid var(--line);
@@ -2046,7 +2050,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.7.7';
+const APP_VERSION = 'v2.7.8';
 const APP_BUILD_DATE = '02/10/2026';
 
 // STORAGE & CONFIG KEYS
@@ -4044,7 +4048,7 @@ function listHTML() {
       <!-- TOP NAVIGATION BAR (Logo, Empresa, Status & Usuário) -->
       <header class="app-header no-print">
         <div class="app-header-brand">
-          <img class="logo-clean" alt="Atalat — Ataléia, Minas Gerais" src="${LOGO_BASE64}">
+          <img class="logo-clean" alt="Atalat — Ataléia, Minas Gerais" src="${LOGO_BASE64}" style="height:36px;max-height:36px;width:auto;object-fit:contain;display:block;">
           <span class="app-header-divider"></span>
           <div class="app-header-title-box">
             <span class="app-header-org">Laticínios Atalat</span>
