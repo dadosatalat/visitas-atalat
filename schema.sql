@@ -59,7 +59,32 @@ CREATE TABLE IF NOT EXISTS public.usuarios (
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. ÍNDICES DE PERFORMANCE
+-- 4. TABELA DE DIAGNÓSTICOS PQFL (Checklists de Qualidade de Produtores)
+CREATE TABLE IF NOT EXISTS public.diagnosticos_pqfl (
+  id TEXT PRIMARY KEY,
+  producer_name TEXT,
+  property_name TEXT,
+  city TEXT,
+  diagnostic_date DATE,
+  technician TEXT,
+  daily_volume NUMERIC DEFAULT 0,
+  score_percentage NUMERIC DEFAULT 0,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 4.1 TABELA DE AUDITORIA DE EXCLUSÕES PQFL
+CREATE TABLE IF NOT EXISTS public.diagnosticos_pqfl_excluidos (
+  id TEXT PRIMARY KEY,
+  producer_name TEXT,
+  property_name TEXT,
+  deleted_by TEXT NOT NULL,
+  deleted_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  data JSONB DEFAULT '{}'::jsonb
+);
+
+-- 5. ÍNDICES DE PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_visitas_type ON public.visitas(type);
 CREATE INDEX IF NOT EXISTS idx_visitas_visit_date ON public.visitas(visit_date DESC);
 CREATE INDEX IF NOT EXISTS idx_visitas_producer_name ON public.visitas(producer_name);
@@ -67,14 +92,19 @@ CREATE INDEX IF NOT EXISTS idx_visitas_risk_level ON public.visitas(risk_level);
 CREATE INDEX IF NOT EXISTS idx_visitas_completed ON public.visitas(completed);
 CREATE INDEX IF NOT EXISTS idx_usuarios_usuario ON public.usuarios(usuario);
 CREATE INDEX IF NOT EXISTS idx_usuarios_status ON public.usuarios(status);
+CREATE INDEX IF NOT EXISTS idx_pqfl_produtor ON public.diagnosticos_pqfl(producer_name);
+CREATE INDEX IF NOT EXISTS idx_pqfl_data ON public.diagnosticos_pqfl(diagnostic_date DESC);
+CREATE INDEX IF NOT EXISTS idx_pqfl_cidade ON public.diagnosticos_pqfl(city);
 
--- 5. HABILITAR ROW LEVEL SECURITY (RLS)
+-- 6. HABILITAR ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.visitas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.visitas_excluidas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tipos_visitas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.diagnosticos_pqfl ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.diagnosticos_pqfl_excluidos ENABLE ROW LEVEL SECURITY;
 
--- 6. POLÍTICAS DE ACESSO (Permitir Leitura e Gravação com Chave Anônima)
+-- 7. POLÍTICAS DE ACESSO (Permitir Leitura e Gravação com Chave Anônima)
 DROP POLICY IF EXISTS "Permitir leitura pública de visitas" ON public.visitas;
 CREATE POLICY "Permitir leitura pública de visitas" ON public.visitas FOR SELECT USING (true);
 
@@ -123,11 +153,37 @@ CREATE POLICY "Permitir atualização pública de usuarios" ON public.usuarios F
 DROP POLICY IF EXISTS "Permitir exclusão pública de usuarios" ON public.usuarios;
 CREATE POLICY "Permitir exclusão pública de usuarios" ON public.usuarios FOR DELETE USING (true);
 
--- 7. HABILITAR REALTIME
+DROP POLICY IF EXISTS "Permitir leitura pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir leitura pública de pqfl" ON public.diagnosticos_pqfl FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir inserção pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir inserção pública de pqfl" ON public.diagnosticos_pqfl FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir atualização pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir atualização pública de pqfl" ON public.diagnosticos_pqfl FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Permitir exclusão pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir exclusão pública de pqfl" ON public.diagnosticos_pqfl FOR DELETE USING (true);
+
+DROP POLICY IF EXISTS "Permitir leitura pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir leitura pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir inserção pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir inserção pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir atualização pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir atualização pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Permitir exclusão pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir exclusão pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR DELETE USING (true);
+
+-- 8. HABILITAR REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas_excluidas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tipos_visitas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl_excluidos;
 
 -- 8. INSERIR USUÁRIOS ADMINISTRADORES PADRÃO (SE NÃO EXISTIREM)
 INSERT INTO public.usuarios (id, nome, usuario, senha, email_contato, cargo, role, status, autorizado_por)

@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Módulo PQFL - Relatório de Compra de Leite e Diagnóstico | Laticínios Atalat</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --primary: #1e3a8a;
@@ -23,6 +24,59 @@
       --na: #64748b;
       --na-bg: #f1f5f9;
       --radius: 8px;
+    }
+
+    /* Cloud Sync Pill & Toast */
+    .cloud-pill {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+    .cloud-online {
+      background: #dcfce7;
+      color: #166534;
+      border-color: #86efac;
+    }
+    .cloud-syncing {
+      background: #fef3c7;
+      color: #92400e;
+      border-color: #fde68a;
+      animation: pulseSync 1.5s infinite;
+    }
+    .cloud-offline {
+      background: #f1f5f9;
+      color: #475569;
+      border-color: #cbd5e1;
+    }
+    @keyframes pulseSync {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .toast-pqfl {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      z-index: 10000;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      font-size: 13.5px;
+      font-weight: 500;
+      animation: toastIn 0.2s ease-out;
+    }
+    @keyframes toastIn {
+      from { transform: translateY(15px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -948,18 +1002,37 @@
         <a href="/" class="nav-btn" style="padding:6px 12px;font-size:12px">← Voltar às Visitas</a>
         <img src="logo_atalat.png" alt="Atalat" style="height:36px;width:auto;object-fit:contain">
         <div class="brand-title">Atalat PQFL</div>
-        <span class="version-tag">v2.7.2</span>
+        <span class="version-tag">v2.7.4</span>
       </div>
 
       <div class="nav-tabs">
+        <button id="pqfl-cloud-btn" class="cloud-pill cloud-offline" onclick="syncPQFLWithSupabase(true)" title="Clique para sincronizar com o banco de dados na nuvem">
+          📡 Modo Offline
+        </button>
         <button id="tab-list-btn" class="nav-btn active" onclick="switchView('list')">📋 Lista de Diagnósticos</button>
         <button id="tab-new-btn" class="nav-btn" onclick="newDiagnostic()">➕ Novo Diagnóstico</button>
-        <button class="nav-btn" onclick="exportData()" title="Baixar backup dos diagnósticos">💾 Exportar Backup</button>
+        <button class="nav-btn" onclick="exportData()" title="Baixar backup JSON dos diagnósticos">💾 Exportar</button>
+        <button class="nav-btn" onclick="document.getElementById('import-file-input').click()" title="Restaurar backup JSON">📤 Importar</button>
+        <input id="import-file-input" type="file" accept=".json,application/json" style="display:none" onchange="importData(event)">
       </div>
     </div>
 
     <!-- VIEW 1: LISTA DE DIAGNÓSTICOS -->
     <div id="view-list" class="card">
+      <!-- AVISO DE TABELA NÃO CRIADA NO SUPABASE -->
+      <div id="pqfl-table-missing-banner" style="display:none;background:#FFFBEB;border:1px solid #FCD34D;border-radius:var(--radius);padding:14px;margin-bottom:16px;color:#92400E;font-size:13px">
+        <div style="font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px">
+          ⚠️ Tabela de Diagnósticos PQFL ainda não criada no seu Supabase!
+        </div>
+        <p style="margin:0 0 10px;font-size:13px;line-height:1.5">
+          Por isso, os diagnósticos cadastrados neste aparelho ainda não chegam à nuvem. Para habilitar o salvamento em tempo real e compartilhamento com outros computadores/celulares, execute o script SQL abaixo no Supabase.
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="nav-btn" onclick="copyPQFLSqlScript()" style="font-size:12.5px;padding:6px 12px;background:#1e3a8a;color:white;border:none">📋 Copiar Script SQL do PQFL</button>
+          <a href="https://supabase.com/dashboard/project/lfrdwmrkzlrvzvhmqvhz/sql" target="_blank" rel="noopener" class="nav-btn" style="font-size:12.5px;padding:6px 12px;text-decoration:none;background:#059669;color:white;border:none;display:inline-flex;align-items:center">🚀 Abrir Supabase SQL Editor ↗</a>
+        </div>
+      </div>
+
       <div class="section-header">
         <div>
           <div class="section-title">📋 Diagnósticos PQFL Realizados</div>
@@ -1339,14 +1412,71 @@
       }
     ];
 
+    // ==============================================================================
+    // SUPABASE NUVEM & PERSISTÊNCIA OFFLINE-FIRST DO PQFL
+    // ==============================================================================
+    const DEFAULT_SUPABASE_URL = 'https://lfrdwmrkzlrvzvhmqvhz.supabase.co';
+    const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcmR3bXJremxydnp2aG1xdmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NTYwMDIsImV4cCI6MjEwNjEzMjAwMn0.AY9UquSlf7gEAet8-ps5SND-E_ETi2ePwLIgeH966CA';
+    const SUPABASE_CONFIG_KEY = 'atalat.supabase.config.v1';
+    const PQFL_DELETED_KEY = 'atalat.pqfl.excluidas.v1';
+    const PQFL_PENDING_DEL_KEY = 'atalat.pqfl.pending_deletions.v1';
+    const USER_SESSION_KEY = 'atalat.user.session.v1';
+
+    let supabaseClient = null;
+    let supabaseStatus = 'offline'; // 'online', 'syncing', 'offline'
+    let isSyncing = false;
+    let pqflTableMissing = false;
+
+    function toast(msg) {
+      let d = document.createElement('div');
+      d.className = 'toast-pqfl';
+      d.textContent = msg;
+      document.body.append(d);
+      setTimeout(() => d.remove(), 2800);
+    }
+
+    function getCurrentUser() {
+      try {
+        return JSON.parse(localStorage.getItem(USER_SESSION_KEY) || 'null');
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function getDeletedPQFLMap() {
+      try {
+        return JSON.parse(localStorage.getItem(PQFL_DELETED_KEY) || '{}');
+      } catch(e) {
+        return {};
+      }
+    }
+
+    function saveDeletedPQFLMap(map) {
+      try {
+        localStorage.setItem(PQFL_DELETED_KEY, JSON.stringify(map));
+      } catch(e) {}
+    }
+
+    function getPendingPQFLDeletions() {
+      try {
+        return JSON.parse(localStorage.getItem(PQFL_PENDING_DEL_KEY) || '[]');
+      } catch(e) {
+        return [];
+      }
+    }
+
+    function savePendingPQFLDeletions(list) {
+      try {
+        localStorage.setItem(PQFL_PENDING_DEL_KEY, JSON.stringify(list));
+      } catch(e) {}
+    }
+
     function getDiagnostics() {
       try {
         let raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_DEMO_DATA));
-          return INITIAL_DEMO_DATA;
-        }
-        return JSON.parse(raw);
+        let list = raw ? JSON.parse(raw) : INITIAL_DEMO_DATA;
+        let dMap = getDeletedPQFLMap();
+        return Array.isArray(list) ? list.filter(d => d && !dMap[d.id]) : [];
       } catch (e) {
         return INITIAL_DEMO_DATA;
       }
@@ -1354,6 +1484,315 @@
 
     function saveDiagnosticsToStorage(data) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    function updateCloudStatusBtn() {
+      let btn = document.getElementById('pqfl-cloud-btn');
+      if (!btn) return;
+      btn.className = 'cloud-pill ' + (supabaseStatus === 'online' ? 'cloud-online' : supabaseStatus === 'syncing' ? 'cloud-syncing' : 'cloud-offline');
+      
+      let unsyncedCount = getDiagnostics().filter(d => d._synced === false).length;
+      if (supabaseStatus === 'online') {
+        btn.innerHTML = '🟢 Nuvem Sincronizada';
+        btn.title = 'Conectado ao Supabase. Todos os diagnósticos estão na nuvem.';
+      } else if (supabaseStatus === 'syncing') {
+        btn.innerHTML = '🔄 Sincronizando...';
+        btn.title = 'Sincronizando diagnósticos com a nuvem...';
+      } else {
+        btn.innerHTML = unsyncedCount > 0 ? `📡 Modo Offline (${unsyncedCount} pendente)` : '📡 Modo Offline (Gravação Local)';
+        btn.title = 'Modo local seguro. Os dados serão enviados automaticamente ao restabelecer a conexão.';
+      }
+
+      let banner = document.getElementById('pqfl-table-missing-banner');
+      if (banner) {
+        banner.style.display = pqflTableMissing ? 'block' : 'none';
+      }
+    }
+
+    function initSupabase() {
+      try {
+        let saved = JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY) || '{}');
+        let url = saved.url || DEFAULT_SUPABASE_URL;
+        let key = saved.key || DEFAULT_SUPABASE_KEY;
+        if (url && key && window.supabase) {
+          supabaseClient = window.supabase.createClient(url, key);
+          supabaseStatus = 'online';
+          setupPQFLRealtime();
+          syncPQFLWithSupabase(false);
+        } else {
+          supabaseStatus = 'offline';
+        }
+      } catch(e) {
+        console.warn('Erro ao inicializar Supabase no PQFL:', e);
+        supabaseStatus = 'offline';
+      }
+      updateCloudStatusBtn();
+    }
+
+    async function pushDiagnosticToSupabase(d) {
+      if (!supabaseClient) return;
+      let stats = calculateStats(d.answers);
+      let volNum = parseFloat(String(d.producao || '0').replace(',', '.')) || 0;
+      let payload = {
+        id: d.id,
+        producer_name: d.produtor || '',
+        property_name: d.propriedade || '',
+        city: d.cidade || '',
+        diagnostic_date: d.data || new Date().toISOString().slice(0, 10),
+        technician: d.tecnico || '',
+        daily_volume: volNum,
+        score_percentage: stats.pct || 0,
+        data: d,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabaseClient
+        .from('diagnosticos_pqfl')
+        .upsert(payload, { onConflict: 'id' });
+
+      if (error) {
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          pqflTableMissing = true;
+          updateCloudStatusBtn();
+        }
+        throw error;
+      }
+      pqflTableMissing = false;
+      updateCloudStatusBtn();
+    }
+
+    async function fetchRemoteDiagnostics() {
+      if (!supabaseClient) return;
+      const { data, error } = await supabaseClient
+        .from('diagnosticos_pqfl')
+        .select('*')
+        .order('diagnostic_date', { ascending: false });
+
+      if (error) {
+        if (error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          pqflTableMissing = true;
+          updateCloudStatusBtn();
+        }
+        return;
+      }
+      pqflTableMissing = false;
+      updateCloudStatusBtn();
+
+      if (!data || !Array.isArray(data)) return;
+
+      let dMap = getDeletedPQFLMap();
+      let localList = getDiagnostics();
+      let localMap = new Map();
+      localList.forEach(item => localMap.set(item.id, item));
+
+      data.forEach(row => {
+        if (dMap[row.id]) return; // Já excluído localmente
+        let remoteObj = row.data || {};
+        remoteObj.id = row.id;
+        remoteObj._synced = true;
+        if (!remoteObj.produtor) remoteObj.produtor = row.producer_name;
+        if (!remoteObj.propriedade) remoteObj.propriedade = row.property_name;
+        if (!remoteObj.cidade) remoteObj.cidade = row.city;
+        if (!remoteObj.data) remoteObj.data = row.diagnostic_date;
+        if (!remoteObj.tecnico) remoteObj.tecnico = row.technician;
+        if (!remoteObj.producao) remoteObj.producao = row.daily_volume;
+
+        let existing = localMap.get(row.id);
+        if (!existing || existing._synced !== false) {
+          localMap.set(row.id, remoteObj);
+        }
+      });
+
+      let merged = Array.from(localMap.values()).filter(d => !dMap[d.id]);
+      merged.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+      saveDiagnosticsToStorage(merged);
+    }
+
+    async function pushPQFLDeletionToSupabase(delRecord) {
+      if (!supabaseClient) return;
+      try {
+        await supabaseClient.from('diagnosticos_pqfl').delete().eq('id', delRecord.id);
+        await supabaseClient.from('diagnosticos_pqfl_excluidos').upsert(delRecord, { onConflict: 'id' });
+      } catch(e) {
+        console.warn('Erro ao registrar exclusão no Supabase:', e);
+      }
+    }
+
+    async function syncPQFLWithSupabase(showNotification = false) {
+      if (isSyncing) return;
+      if (!navigator.onLine) {
+        supabaseStatus = 'offline';
+        updateCloudStatusBtn();
+        if (showNotification) toast('📡 Sem conexão com a internet. Diagnósticos salvos com segurança no aparelho.');
+        return;
+      }
+
+      isSyncing = true;
+      supabaseStatus = 'syncing';
+      updateCloudStatusBtn();
+
+      try {
+        if (!supabaseClient) {
+          initSupabase();
+        }
+        if (!supabaseClient) throw new Error('Supabase indisponível');
+
+        // 1. Enviar exclusões pendentes
+        let pendingDels = getPendingPQFLDeletions();
+        if (pendingDels.length > 0) {
+          for (let del of pendingDels) {
+            await pushPQFLDeletionToSupabase(del);
+          }
+          savePendingPQFLDeletions([]);
+        }
+
+        // 2. Enviar diagnósticos locais pendentes
+        let localList = getDiagnostics();
+        let unsynced = localList.filter(d => d._synced === false);
+        for (let d of unsynced) {
+          try {
+            await pushDiagnosticToSupabase(d);
+            d._synced = true;
+          } catch(e) {
+            console.warn('Falha ao subir diagnóstico:', d.id, e);
+          }
+        }
+        saveDiagnosticsToStorage(localList);
+
+        // 3. Baixar diagnósticos da nuvem
+        await fetchRemoteDiagnostics();
+
+        supabaseStatus = 'online';
+        updateCloudStatusBtn();
+        if (showNotification) toast('🟢 Nuvem sincronizada! Todos os diagnósticos estão atualizados.');
+      } catch (err) {
+        console.warn('Erro na sincronização PQFL:', err);
+        supabaseStatus = 'offline';
+        updateCloudStatusBtn();
+        if (showNotification) toast('⚠️ Falha ao sincronizar com a nuvem. Operando em modo local seguro.');
+      } finally {
+        isSyncing = false;
+        updateCloudStatusBtn();
+        renderList();
+      }
+    }
+
+    function setupPQFLRealtime() {
+      if (!supabaseClient) return;
+      try {
+        supabaseClient
+          .channel('pqfl-realtime-listener')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'diagnosticos_pqfl' }, () => {
+            fetchRemoteDiagnostics().then(() => renderList());
+          })
+          .subscribe();
+      } catch(e) {}
+    }
+
+    const PQFL_SQL_CODE = `-- ==============================================================================
+-- TABELAS DE DIAGNÓSTICOS PQFL NO SUPABASE (EXECUTAR NO SQL EDITOR)
+-- ==============================================================================
+CREATE TABLE IF NOT EXISTS public.diagnosticos_pqfl (
+  id TEXT PRIMARY KEY,
+  producer_name TEXT,
+  property_name TEXT,
+  city TEXT,
+  diagnostic_date DATE,
+  technician TEXT,
+  daily_volume NUMERIC DEFAULT 0,
+  score_percentage NUMERIC DEFAULT 0,
+  data JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.diagnosticos_pqfl_excluidos (
+  id TEXT PRIMARY KEY,
+  producer_name TEXT,
+  property_name TEXT,
+  deleted_by TEXT NOT NULL,
+  deleted_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  data JSONB DEFAULT '{}'::jsonb
+);
+
+CREATE INDEX IF NOT EXISTS idx_pqfl_produtor ON public.diagnosticos_pqfl(producer_name);
+CREATE INDEX IF NOT EXISTS idx_pqfl_data ON public.diagnosticos_pqfl(diagnostic_date DESC);
+CREATE INDEX IF NOT EXISTS idx_pqfl_cidade ON public.diagnosticos_pqfl(city);
+
+ALTER TABLE public.diagnosticos_pqfl ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.diagnosticos_pqfl_excluidos ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir leitura pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir leitura pública de pqfl" ON public.diagnosticos_pqfl FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir inserção pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir inserção pública de pqfl" ON public.diagnosticos_pqfl FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir atualização pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir atualização pública de pqfl" ON public.diagnosticos_pqfl FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Permitir exclusão pública de pqfl" ON public.diagnosticos_pqfl;
+CREATE POLICY "Permitir exclusão pública de pqfl" ON public.diagnosticos_pqfl FOR DELETE USING (true);
+
+DROP POLICY IF EXISTS "Permitir leitura pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir leitura pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir inserção pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir inserção pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir atualização pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir atualização pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Permitir exclusão pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
+CREATE POLICY "Permitir exclusão pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR DELETE USING (true);
+
+ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl_excluidos;
+`;
+
+    function copyPQFLSqlScript() {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(PQFL_SQL_CODE).then(() => {
+          toast('📋 Script SQL copiado! Cole no SQL Editor do Supabase.');
+        }).catch(() => {
+          prompt('Copie o código SQL abaixo:', PQFL_SQL_CODE);
+        });
+      } else {
+        prompt('Copie o código SQL abaixo:', PQFL_SQL_CODE);
+      }
+    }
+
+    function importData(event) {
+      let file = event.target.files && event.target.files[0];
+      if (!file) return;
+      let reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          let imported = JSON.parse(e.target.result);
+          if (!Array.isArray(imported)) throw new Error('Formato inválido: esperado uma lista de diagnósticos.');
+          let current = getDiagnostics();
+          let currentMap = new Map();
+          current.forEach(d => currentMap.set(d.id, d));
+          imported.forEach(d => {
+            if (d && d.id) {
+              d._synced = false;
+              currentMap.set(d.id, d);
+            }
+          });
+          let merged = Array.from(currentMap.values());
+          saveDiagnosticsToStorage(merged);
+          renderList();
+          toast(`✅ ${imported.length} diagnósticos importados com sucesso!`);
+          if (navigator.onLine && supabaseClient) {
+            syncPQFLWithSupabase(false);
+          }
+        } catch(err) {
+          alert('Erro ao importar arquivo de backup: ' + err.message);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file);
     }
 
     function switchView(viewName) {
@@ -1639,7 +2078,8 @@
       document.getElementById('f-assistencia').value = 'Sim';
       document.getElementById('f-antibioticos').value = '';
       document.getElementById('f-observacoes').value = '';
-      document.getElementById('f-tecnico').value = '';
+      let curUser = getCurrentUser();
+      document.getElementById('f-tecnico').value = curUser ? curUser.nome : '';
       document.getElementById('f-produtor-resp').value = '';
 
       // Default todos desmarcados
@@ -1759,7 +2199,9 @@
         produtorResp: document.getElementById('f-produtor-resp').value.trim(),
         sigComprador,
         sigProdutor,
-        answers: { ...currentAnswers }
+        answers: { ...currentAnswers },
+        _synced: false,
+        updated_at: new Date().toISOString()
       };
 
       let list = getDiagnostics();
@@ -1769,24 +2211,64 @@
 
       saveDiagnosticsToStorage(list);
 
+      // Enviar em segundo plano para o Supabase
+      if (navigator.onLine && supabaseClient) {
+        pushDiagnosticToSupabase(d).then(() => {
+          d._synced = true;
+          saveDiagnosticsToStorage(list);
+          renderList();
+          updateCloudStatusBtn();
+        }).catch(err => {
+          console.warn('Erro ao subir diagnóstico ao Supabase:', err);
+        });
+      }
+
       if (openReportAfter) {
         showReport(d.id);
       } else {
-        alert('✅ Diagnóstico PQFL salvo com sucesso!');
+        toast('✅ Diagnóstico PQFL salvo com sucesso!');
         switchView('list');
       }
     }
 
-    function deleteDiagnostic(id) {
+    async function deleteDiagnostic(id) {
       let list = getDiagnostics();
       let d = list.find(x => x.id === id);
       if (!d) return;
 
-      if (!confirm(`Tem certeza que deseja excluir o diagnóstico de "${d.produtor}" (${d.propriedade})?`)) return;
+      let user = getCurrentUser();
+      let resp = user ? `${user.nome} (${user.cargo || user.role || 'Usuário'})` : 'Usuário Atalat';
 
+      if (!confirm(`Tem certeza que deseja excluir o diagnóstico de "${d.produtor}" (${d.propriedade})?\n\nEsta exclusão é autenticada e será sincronizada com todos os computadores e celulares da Atalat.`)) return;
+
+      let delRecord = {
+        id: id,
+        producer_name: d.produtor || '',
+        property_name: d.propriedade || '',
+        deleted_by: resp,
+        deleted_at: new Date().toISOString()
+      };
+
+      // 1. Gravar no mapa de exclusões local
+      let dMap = getDeletedPQFLMap();
+      dMap[id] = delRecord;
+      saveDeletedPQFLMap(dMap);
+
+      // 2. Fila offline
+      let pendingDels = getPendingPQFLDeletions().filter(x => x.id !== id);
+      pendingDels.push(delRecord);
+      savePendingPQFLDeletions(pendingDels);
+
+      // 3. Remover da lista local
       list = list.filter(x => x.id !== id);
       saveDiagnosticsToStorage(list);
       renderList();
+      toast('✅ Diagnóstico excluído com sucesso.');
+
+      // 4. Se online, enviar para Supabase
+      if (navigator.onLine && supabaseClient) {
+        await pushPQFLDeletionToSupabase(delRecord);
+      }
     }
 
     function calculateStats(answers) {
@@ -1826,7 +2308,7 @@
               <tr>
                 <td><strong>${formattedDate}</strong></td>
                 <td>
-                  <strong>${d.produtor}</strong><br>
+                  <strong>${d.produtor}</strong> ${d._synced === false ? '<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:10px;margin-left:4px" title="Salvo no aparelho. Será enviado à nuvem assim que houver conexão.">💾 No Aparelho</span>' : ''}<br>
                   <small style="color:var(--text-muted)">${d.telefone || 'Sem tel.'} • ${d.idade ? d.idade + ' anos' : ''}</small>
                 </td>
                 <td>
@@ -1879,7 +2361,7 @@
             return `
               <div class="mobile-diagnostic-card">
                 <div class="mdc-header">
-                  <span class="mdc-date">📅 ${formattedDate} &bull; <strong style="color:var(--primary)">${d.unidade || 'Matriz'}</strong></span>
+                  <span class="mdc-date">📅 ${formattedDate} &bull; <strong style="color:var(--primary)">${d.unidade || 'Matriz'}</strong> ${d._synced === false ? '<span class="badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;font-size:10px;margin-left:4px">💾 No Aparelho</span>' : ''}</span>
                   <span class="badge ${stats.pct >= 70 ? 'badge-success' : stats.pct >= 50 ? 'badge-warning' : 'badge-danger'}">
                     ${stats.pct}% (${stats.c}C / ${stats.nc}NC)
                   </span>
@@ -2215,6 +2697,28 @@
       setupSignaturePad('canvas-sig-comprador', 'clear-sig-comprador');
       setupSignaturePad('canvas-sig-produtor', 'clear-sig-produtor');
       renderList();
+
+      initSupabase();
+
+      window.addEventListener('online', () => {
+        supabaseStatus = 'online';
+        updateCloudStatusBtn();
+        toast('🌐 Conexão restabelecida. Sincronizando PQFL...');
+        syncPQFLWithSupabase(false);
+      });
+
+      window.addEventListener('offline', () => {
+        supabaseStatus = 'offline';
+        updateCloudStatusBtn();
+        toast('📡 Sem internet. Salvando diagnósticos localmente.');
+      });
+
+      // Sincronização periódica em segundo plano (a cada 60s)
+      setInterval(() => {
+        if (navigator.onLine && supabaseClient && !isSyncing) {
+          syncPQFLWithSupabase(false);
+        }
+      }, 60000);
     });
   </script>
 </body>
