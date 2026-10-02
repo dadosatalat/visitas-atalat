@@ -2050,7 +2050,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.7.8';
+const APP_VERSION = 'v2.7.9';
 const APP_BUILD_DATE = '02/10/2026';
 
 // STORAGE & CONFIG KEYS
@@ -2209,9 +2209,10 @@ function initSupabase() {
       supabaseClient = window.supabase.createClient(url, key);
       supabaseStatus = 'online';
 
-      // Purgar dados de demonstracao do Supabase se existirem
+      // Purgar dados de demonstracao e exclusoes pendentes do Supabase se existirem
       try {
         supabaseClient.from('visitas').delete().like('id', 'v_demo_%').then(() => {}).catch(() => {});
+        supabaseClient.from('visitas').delete().eq('type', 'excluido').then(() => {}).catch(() => {});
         supabaseClient.from('visitas_excluidas').delete().like('id', 'v_demo_%').then(() => {}).catch(() => {});
       } catch (e) {}
 
@@ -2361,6 +2362,9 @@ async function downloadAndReconcileVisits() {
     let rec = r.data || {};
     let isDeleted = rec._deleted === true || r.type === 'excluido' || (r.producer_name && r.producer_name.startsWith('[EXCLUÍDO]'));
     if (isDeleted) {
+      if (supabaseClient) {
+        supabaseClient.from('visitas').delete().eq('id', r.id).then(() => {}).catch(() => {});
+      }
       remoteDeletedIds.add(r.id);
       dMap[r.id] = {
         id: r.id,
@@ -2369,6 +2373,11 @@ async function downloadAndReconcileVisits() {
         deleted_at: rec.deleted_at || r.updated_at || new Date().toISOString(),
         deleted_by: rec.deleted_by || 'Outro Colaborador'
       };
+    } else if (remoteDeletedIds.has(r.id) || dMap[r.id]) {
+      // Já foi excluído localmente, garantir que seja excluído da nuvem caso ainda esteja lá
+      if (supabaseClient) {
+        supabaseClient.from('visitas').delete().eq('id', r.id).then(() => {}).catch(() => {});
+      }
     } else {
       remoteActiveVisits.push(r);
       remoteActiveIds.add(r.id);
@@ -2403,9 +2412,9 @@ async function downloadAndReconcileVisits() {
       return false;
     }
     // 2. Se a visita local já havia sido sincronizada com a nuvem (_synced === true),
-    // mas a nuvem retornou a lista completa ativa e ela NÃO consta mais lá,
+    // mas a nuvem retornou a lista oficial ativa e ela NÃO consta mais lá,
     // significa que foi excluída do banco por outro administrador/usuário!
-    if (v._synced === true && remoteActiveIds.size > 0 && !remoteActiveIds.has(v._id)) {
+    if (v._synced === true && !remoteActiveIds.has(v._id)) {
       removedCount++;
       dMap[v._id] = { id: v._id, deleted_at: new Date().toISOString(), deleted_by: 'Nuvem / Exclusão Remota' };
       return false;
@@ -2420,6 +2429,9 @@ async function downloadAndReconcileVisits() {
 
   // 3. Adicionar ou atualizar visitas ativas vindas da nuvem
   remoteActiveVisits.forEach(r => {
+    if (remoteDeletedIds.has(r.id) || dMap[r.id]) {
+      return; // Jamais reintroduzir uma visita que já foi excluída
+    }
     let rec = r.data || {};
     rec._id = r.id;
     rec._type = r.type;
@@ -2462,30 +2474,10 @@ async function pushDeletionToSupabase(delRecord) {
       }, { onConflict: 'id' });
     } catch (e) {}
 
-    // 2. Gravar Tombstone na tabela de visitas:
-    // Garante autenticação de que foi excluído, dispara Realtime para todos e limpa os outros aparelhos
-    const { error: tombErr } = await supabaseClient.from('visitas').upsert({
-      id: delRecord.id,
-      type: 'excluido',
-      producer_name: '[EXCLUÍDO] ' + (delRecord.producer_name || ''),
-      property_name: 'REGISTRO EXCLUÍDO',
-      visit_date: null,
-      responsible: delRecord.responsible || '',
-      daily_volume: 0,
-      risk_level: null,
-      completed: false,
-      data: {
-        _id: delRecord.id,
-        _deleted: true,
-        producer_name: delRecord.producer_name || '',
-        responsible: delRecord.responsible || '',
-        deleted_at: delRecord.deleted_at || new Date().toISOString(),
-        deleted_by: delRecord.deleted_by || 'Usuário Atalat'
-      },
-      updated_at: delRecord.deleted_at || new Date().toISOString()
-    }, { onConflict: 'id' });
+    // 2. Excluir DEFINITIVAMENTE da tabela visitas no Supabase
+    const { error: delErr } = await supabaseClient.from('visitas').delete().eq('id', delRecord.id);
 
-    if (!tombErr) {
+    if (!delErr) {
       let pending = getPendingDeletions().filter(d => d.id !== delRecord.id);
       savePendingDeletions(pending);
     }
@@ -3729,18 +3721,19 @@ async function removeVisit(xId) {
   pendingDels.push(delRecord);
   savePendingDeletions(pendingDels);
 
-  // 3. Remover da lista local e persistir
+  // 3. Remover da lista local e persistir imediatamente
   visits = visits.filter(x => x._id !== xId);
-  try {
-    persist();
-    render();
-    toast('✅ Lançamento excluído com sucesso.');
-    if (navigator.onLine && supabaseClient) {
+  persist();
+  render();
+  toast('✅ Lançamento excluído com sucesso.');
+
+  // 4. Propagar exclusão definitiva para a nuvem
+  if (navigator.onLine && supabaseClient) {
+    try {
       await pushDeletionToSupabase(delRecord);
+    } catch (err) {
+      console.warn('Erro ao propagar exclusão para o Supabase:', err);
     }
-  } catch (e) {
-    load();
-    toast('Erro ao remover');
   }
 }
 
