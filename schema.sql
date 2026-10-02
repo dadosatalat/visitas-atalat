@@ -24,6 +24,16 @@ CREATE TABLE IF NOT EXISTS public.visitas (
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
+-- 1.1 TABELA DE AUDITORIA DE VISITAS EXCLUÍDAS (Garante persistência de exclusões entre dispositivos)
+CREATE TABLE IF NOT EXISTS public.visitas_excluidas (
+  id TEXT PRIMARY KEY,
+  producer_name TEXT,
+  responsible TEXT,
+  deleted_by TEXT NOT NULL,
+  deleted_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  data JSONB DEFAULT '{}'::jsonb
+);
+
 -- 2. TABELA DE TIPOS DE VISITA CUSTOMIZADOS (Formulários personalizados criados pelos usuários)
 CREATE TABLE IF NOT EXISTS public.tipos_visitas (
   id TEXT PRIMARY KEY,
@@ -60,6 +70,7 @@ CREATE INDEX IF NOT EXISTS idx_usuarios_status ON public.usuarios(status);
 
 -- 5. HABILITAR ROW LEVEL SECURITY (RLS)
 ALTER TABLE public.visitas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.visitas_excluidas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tipos_visitas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 
@@ -75,6 +86,18 @@ CREATE POLICY "Permitir atualização pública de visitas" ON public.visitas FOR
 
 DROP POLICY IF EXISTS "Permitir exclusão pública de visitas" ON public.visitas;
 CREATE POLICY "Permitir exclusão pública de visitas" ON public.visitas FOR DELETE USING (true);
+
+DROP POLICY IF EXISTS "Permitir leitura pública de exclusoes" ON public.visitas_excluidas;
+CREATE POLICY "Permitir leitura pública de exclusoes" ON public.visitas_excluidas FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Permitir inserção pública de exclusoes" ON public.visitas_excluidas;
+CREATE POLICY "Permitir inserção pública de exclusoes" ON public.visitas_excluidas FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir atualização pública de exclusoes" ON public.visitas_excluidas;
+CREATE POLICY "Permitir atualização pública de exclusoes" ON public.visitas_excluidas FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Permitir exclusão pública de exclusoes" ON public.visitas_excluidas;
+CREATE POLICY "Permitir exclusão pública de exclusoes" ON public.visitas_excluidas FOR DELETE USING (true);
 
 DROP POLICY IF EXISTS "Permitir leitura pública de tipos" ON public.tipos_visitas;
 CREATE POLICY "Permitir leitura pública de tipos" ON public.tipos_visitas FOR SELECT USING (true);
@@ -102,6 +125,7 @@ CREATE POLICY "Permitir exclusão pública de usuarios" ON public.usuarios FOR D
 
 -- 7. HABILITAR REALTIME
 ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas_excluidas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.tipos_visitas;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios;
 

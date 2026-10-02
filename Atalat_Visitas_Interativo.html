@@ -907,16 +907,29 @@
       to { transform: translateY(0); opacity: 1; }
     }
     
-    /* Modal */
+    /* Modal Container & Overlays - Always Centered & Viewport-Pinned */
+    #modal-container {
+      position: relative;
+      z-index: 10000;
+    }
     .modal-overlay {
       position: fixed;
-      inset: 0;
-      background: rgba(15, 41, 66, 0.55);
-      backdrop-filter: blur(3px);
-      display: grid;
-      place-items: center;
-      z-index: 200;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 41, 66, 0.65);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
       padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
     }
     .modal {
       background: white;
@@ -924,9 +937,16 @@
       max-width: 620px;
       width: 100%;
       padding: 26px;
-      box-shadow: var(--shadow-lg);
+      box-shadow: 0 20px 45px rgba(0, 0, 0, 0.3);
       max-height: 90vh;
       overflow-y: auto;
+      margin: auto;
+      position: relative;
+      animation: modalFadeIn 0.2s ease-out;
+    }
+    @keyframes modalFadeIn {
+      from { transform: scale(0.96); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
     }
     .modal-top-bar {
       display: flex;
@@ -1359,17 +1379,20 @@
         border-radius: 8px;
       }
 
-      /* Modals on Mobile */
+      /* Modals on Mobile - Clean Centered Dialogs */
       .modal-overlay {
-        padding: 0;
-        align-items: flex-end;
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .modal {
-        border-radius: 20px 20px 0 0;
-        max-height: 90vh;
-        padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+        border-radius: var(--radius);
+        max-height: 92vh;
+        padding: 20px 16px;
         width: 100%;
         max-width: 100%;
+        margin: auto;
       }
       .modal .card {
         flex-direction: column;
@@ -1765,14 +1788,43 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.7.3';
-const APP_BUILD_DATE = '01/10/2026';
+const APP_VERSION = 'v2.7.4';
+const APP_BUILD_DATE = '02/10/2026';
 
 // STORAGE & CONFIG KEYS
 const DEFAULT_SUPABASE_URL = 'https://lfrdwmrkzlrvzvhmqvhz.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmcmR3bXJremxydnp2aG1xdmh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1NTYwMDIsImV4cCI6MjEwNjEzMjAwMn0.AY9UquSlf7gEAet8-ps5SND-E_ETi2ePwLIgeH966CA';
 
 const KEY = 'atalat.visitas.v1', TYPES_KEY = 'atalat.visitas.tipos.v1', SUPABASE_KEY = 'atalat.supabase.config.v1', USER_SESSION_KEY = 'atalat.user.session.v1', CUSTOM_PASSWORDS_KEY = 'atalat.custom.passwords.v1', USERS_KEY = 'atalat.users.v1';
+const DELETED_KEY = 'atalat.visitas.excluidas.v1', PENDING_DELETIONS_KEY = 'atalat.visitas.pending_deletions.v1';
+
+function getDeletedVisitsMap() {
+  try {
+    return JSON.parse(localStorage.getItem(DELETED_KEY) || '{}');
+  } catch(e) {
+    return {};
+  }
+}
+
+function saveDeletedVisitsMap(m) {
+  try {
+    localStorage.setItem(DELETED_KEY, JSON.stringify(m));
+  } catch(e) {}
+}
+
+function getPendingDeletions() {
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_DELETIONS_KEY) || '[]');
+  } catch(e) {
+    return [];
+  }
+}
+
+function savePendingDeletions(list) {
+  try {
+    localStorage.setItem(PENDING_DELETIONS_KEY, JSON.stringify(list));
+  } catch(e) {}
+}
 
 const DEFAULT_USERS = [
   {
@@ -1916,8 +1968,49 @@ function initSupabase() {
 
         // Realtime listener for visits & custom forms (READ ONLY - NEVER WRITES TO PREVENT LOOPS)
         supabaseClient.channel('visitas-realtime-listener')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'visitas' }, () => {
-            fetchRemoteData(false);
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'visitas' }, (payload) => {
+            let delId = null;
+            let delRecord = null;
+            if (payload.eventType === 'DELETE' && payload.old && payload.old.id) {
+              delId = payload.old.id;
+              delRecord = { id: delId, deleted_at: new Date().toISOString(), deleted_by: 'Outro Colaborador' };
+            } else if (payload.new && (payload.new.type === 'excluido' || payload.new.data?._deleted === true)) {
+              delId = payload.new.id;
+              delRecord = {
+                id: delId,
+                producer_name: payload.new.data?.producer_name || '',
+                responsible: payload.new.responsible || '',
+                deleted_at: payload.new.data?.deleted_at || payload.new.updated_at || new Date().toISOString(),
+                deleted_by: payload.new.data?.deleted_by || 'Outro Colaborador'
+              };
+            }
+
+            if (delId) {
+              let dMap = getDeletedVisitsMap();
+              dMap[delId] = delRecord || { id: delId, deleted_at: new Date().toISOString(), deleted_by: 'Outro Colaborador' };
+              saveDeletedVisitsMap(dMap);
+              let prevLen = visits.length;
+              visits = visits.filter(v => v._id !== delId);
+              if (visits.length !== prevLen) {
+                persist();
+                if (view === 'list' || view === 'dashboard') render();
+              }
+            } else {
+              fetchRemoteData(false);
+            }
+          })
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'visitas_excluidas' }, (payload) => {
+            if (payload.new && payload.new.id) {
+              let dMap = getDeletedVisitsMap();
+              dMap[payload.new.id] = payload.new;
+              saveDeletedVisitsMap(dMap);
+              let prevLen = visits.length;
+              visits = visits.filter(v => v._id !== payload.new.id);
+              if (visits.length !== prevLen) {
+                persist();
+                if (view === 'list' || view === 'dashboard') render();
+              }
+            }
           })
           .on('postgres_changes', { event: '*', schema: 'public', table: 'tipos_visitas' }, () => {
             fetchRemoteData(false);
@@ -1972,6 +2065,156 @@ function offlineBannerHTML() {
   `;
 }
 
+// Função centralizada para reconciliar e sincronizar exclusões e novidades da nuvem
+async function downloadAndReconcileVisits() {
+  if (!supabaseClient || !navigator.onLine) return { downloadedCount: 0, removedCount: 0, hasChanges: false };
+
+  const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
+  if (vErr || !Array.isArray(remoteVisits)) {
+    if (vErr) console.warn('Erro ao carregar visitas:', vErr);
+    return { downloadedCount: 0, removedCount: 0, hasChanges: false };
+  }
+
+  let downloadedCount = 0;
+  let removedCount = 0;
+  let dMap = getDeletedVisitsMap();
+  let remoteDeletedIds = new Set(Object.keys(dMap));
+  let remoteActiveVisits = [];
+  let remoteActiveIds = new Set();
+
+  remoteVisits.forEach(r => {
+    let rec = r.data || {};
+    let isDeleted = rec._deleted === true || r.type === 'excluido' || (r.producer_name && r.producer_name.startsWith('[EXCLUÍDO]'));
+    if (isDeleted) {
+      remoteDeletedIds.add(r.id);
+      dMap[r.id] = {
+        id: r.id,
+        producer_name: rec.producer_name || r.producer_name || '',
+        responsible: rec.responsible || r.responsible || '',
+        deleted_at: rec.deleted_at || r.updated_at || new Date().toISOString(),
+        deleted_by: rec.deleted_by || 'Outro Colaborador'
+      };
+    } else {
+      remoteActiveVisits.push(r);
+      remoteActiveIds.add(r.id);
+    }
+  });
+
+  // Verificar tabela opcional visitas_excluidas se existir no Supabase
+  try {
+    const { data: remoteDelRows } = await supabaseClient.from('visitas_excluidas').select('*');
+    if (Array.isArray(remoteDelRows)) {
+      remoteDelRows.forEach(dr => {
+        if (dr && dr.id) {
+          remoteDeletedIds.add(dr.id);
+          dMap[dr.id] = dr;
+        }
+      });
+    }
+  } catch(e) {}
+
+  saveDeletedVisitsMap(dMap);
+
+  // Reconciliação local:
+  // 1. Purgar localmente qualquer visita confirmada como excluída
+  let initialLen = visits.length;
+  let localVisits = visits.filter(v => {
+    if (remoteDeletedIds.has(v._id) || dMap[v._id] || v._deleted) {
+      removedCount++;
+      return false;
+    }
+    // 2. Se a visita local já havia sido sincronizada com a nuvem (_synced === true),
+    // mas a nuvem retornou a lista completa ativa e ela NÃO consta mais lá,
+    // significa que foi excluída do banco por outro administrador/usuário!
+    if (v._synced === true && remoteActiveIds.size > 0 && !remoteActiveIds.has(v._id)) {
+      removedCount++;
+      dMap[v._id] = { id: v._id, deleted_at: new Date().toISOString(), deleted_by: 'Nuvem / Exclusão Remota' };
+      return false;
+    }
+    return true;
+  });
+
+  saveDeletedVisitsMap(dMap);
+
+  let localMap = new Map(localVisits.map(v => [v._id, v]));
+  let hasChanges = localVisits.length !== initialLen;
+
+  // 3. Adicionar ou atualizar visitas ativas vindas da nuvem
+  remoteActiveVisits.forEach(r => {
+    let rec = r.data || {};
+    rec._id = r.id;
+    rec._type = r.type;
+    rec._completed = r.completed;
+    rec._updated = r.updated_at;
+    rec._synced = true;
+
+    let local = localMap.get(r.id);
+    if (!local) {
+      localMap.set(r.id, rec);
+      hasChanges = true;
+      downloadedCount++;
+    } else if (r.updated_at && (!local._updated || r.updated_at > local._updated)) {
+      localMap.set(r.id, rec);
+      hasChanges = true;
+      downloadedCount++;
+    }
+  });
+
+  if (hasChanges) {
+    visits = [...localMap.values()];
+    persist();
+  }
+
+  return { downloadedCount, removedCount, hasChanges };
+}
+
+// Propaga exclusão autenticada para o Supabase (online e offline)
+async function pushDeletionToSupabase(delRecord) {
+  if (!supabaseClient || !navigator.onLine) return;
+  try {
+    // 1. Tentar gravar na tabela de auditoria de exclusões se existir
+    try {
+      await supabaseClient.from('visitas_excluidas').upsert({
+        id: delRecord.id,
+        producer_name: delRecord.producer_name || '',
+        responsible: delRecord.responsible || '',
+        deleted_by: delRecord.deleted_by || 'Usuário Atalat',
+        deleted_at: delRecord.deleted_at || new Date().toISOString()
+      }, { onConflict: 'id' });
+    } catch (e) {}
+
+    // 2. Gravar Tombstone na tabela de visitas:
+    // Garante autenticação de que foi excluído, dispara Realtime para todos e limpa os outros aparelhos
+    const { error: tombErr } = await supabaseClient.from('visitas').upsert({
+      id: delRecord.id,
+      type: 'excluido',
+      producer_name: '[EXCLUÍDO] ' + (delRecord.producer_name || ''),
+      property_name: 'REGISTRO EXCLUÍDO',
+      visit_date: null,
+      responsible: delRecord.responsible || '',
+      daily_volume: 0,
+      risk_level: null,
+      completed: false,
+      data: {
+        _id: delRecord.id,
+        _deleted: true,
+        producer_name: delRecord.producer_name || '',
+        responsible: delRecord.responsible || '',
+        deleted_at: delRecord.deleted_at || new Date().toISOString(),
+        deleted_by: delRecord.deleted_by || 'Usuário Atalat'
+      },
+      updated_at: delRecord.deleted_at || new Date().toISOString()
+    }, { onConflict: 'id' });
+
+    if (!tombErr) {
+      let pending = getPendingDeletions().filter(d => d.id !== delRecord.id);
+      savePendingDeletions(pending);
+    }
+  } catch (err) {
+    console.warn('Erro ao propagar exclusão no Supabase:', err);
+  }
+}
+
 // Read-only fetch from Supabase (pull updates without triggering Realtime loops)
 async function fetchRemoteData(showNotification = false) {
   if (!supabaseClient || isSyncing) return;
@@ -1983,8 +2226,6 @@ async function fetchRemoteData(showNotification = false) {
   isSyncing = true;
 
   try {
-    let downloadedCount = 0;
-
     // 1. Fetch remote users
     try {
       const { data: remoteUsers, error: uErr } = await supabaseClient.from('usuarios').select('*');
@@ -2019,47 +2260,16 @@ async function fetchRemoteData(showNotification = false) {
       console.warn('Erro ao carregar tipos:', errT);
     }
 
-    // 3. Fetch remote visits
-    try {
-      const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
-      if (!vErr && Array.isArray(remoteVisits)) {
-        let localMap = new Map(visits.map(v => [v._id, v]));
-        let hasChanges = false;
-        remoteVisits.forEach(r => {
-          let rec = r.data || {};
-          rec._id = r.id;
-          rec._type = r.type;
-          rec._completed = r.completed;
-          rec._updated = r.updated_at;
-          rec._synced = true;
-          
-          let local = localMap.get(r.id);
-          if (!local) {
-            localMap.set(r.id, rec);
-            hasChanges = true;
-            downloadedCount++;
-          } else if (r.updated_at && (!local._updated || r.updated_at > local._updated)) {
-            localMap.set(r.id, rec);
-            hasChanges = true;
-            downloadedCount++;
-          }
-        });
-        if (hasChanges) {
-          visits = [...localMap.values()];
-          persist();
-          if (view === 'list' || view === 'dashboard') {
-            render();
-          }
-        }
-      }
-    } catch (errV) {
-      console.warn('Erro ao carregar visitas:', errV);
+    // 3. Fetch remote visits & reconciliar exclusões
+    const recResult = await downloadAndReconcileVisits();
+    if (recResult.hasChanges && (view === 'list' || view === 'dashboard')) {
+      render();
     }
 
     supabaseStatus = 'online';
     updateHeaderUserAndCloud();
     if (showNotification) {
-      toast(downloadedCount > 0 ? `✅ Nuvem atualizada: ${downloadedCount} novidade(s) baixada(s)!` : '✅ Dados já estão 100% atualizados com a nuvem!');
+      toast(recResult.downloadedCount > 0 ? `✅ Nuvem atualizada: ${recResult.downloadedCount} novidade(s) baixada(s)!` : '✅ Dados já estão 100% atualizados com a nuvem!');
     }
   } catch (err) {
     console.error('Erro ao buscar dados remotos:', err);
@@ -2086,6 +2296,7 @@ async function syncWithSupabase(showNotification = false) {
 
   let uploadedCount = 0;
   let downloadedCount = 0;
+  let removedCount = 0;
 
   try {
     if (!supabaseClient) {
@@ -2101,34 +2312,15 @@ async function syncWithSupabase(showNotification = false) {
       throw new Error('Supabase indisponível');
     }
 
-    // 1. ENVIAR DADOS LOCAIS (UPLOAD)
-    if (visits.length > 0) {
-      let rowsToUpsert = visits.map(v => ({
-        id: v._id,
-        type: v._type,
-        producer_name: subject(v),
-        property_name: property(v),
-        visit_date: date(v) || null,
-        responsible: responsible(v),
-        route_city: routeOrCity(v),
-        daily_volume: dailyVolume(v),
-        risk_level: riskLevel(v),
-        completed: v._completed !== false,
-        data: v,
-        updated_at: v._updated || new Date().toISOString()
-      }));
-
-      const { error: upErr } = await supabaseClient.from('visitas').upsert(rowsToUpsert, { onConflict: 'id' });
-      if (!upErr) {
-        uploadedCount = visits.filter(v => v._synced === false).length || visits.length;
-        visits.forEach(v => { v._synced = true; });
-        persist();
-      } else {
-        console.warn('Erro ao enviar visitas para o Supabase:', upErr);
+    // 1. ENVIAR EXCLUSÕES PENDENTES (Tombstones que ocorreram offline)
+    let pendingDels = getPendingDeletions();
+    if (pendingDels.length > 0) {
+      for (let del of pendingDels) {
+        await pushDeletionToSupabase(del);
       }
     }
 
-    // 2. BAIXAR DADOS DA NUVEM (DOWNLOAD)
+    // 2. BAIXAR E RECONCILIAR DADOS DA NUVEM (DOWNLOAD PRIMEIRO)
     // 2.1 Usuários
     try {
       const { data: remoteUsers, error: uErr } = await supabaseClient.from('usuarios').select('*');
@@ -2161,38 +2353,39 @@ async function syncWithSupabase(showNotification = false) {
       console.warn('Erro ao baixar tipos:', errT);
     }
 
-    // 2.3 Visitas
-    try {
-      const { data: remoteVisits, error: vErr } = await supabaseClient.from('visitas').select('*');
-      if (!vErr && Array.isArray(remoteVisits)) {
-        let localMap = new Map(visits.map(v => [v._id, v]));
-        let hasChanges = false;
-        remoteVisits.forEach(r => {
-          let rec = r.data || {};
-          rec._id = r.id;
-          rec._type = r.type;
-          rec._completed = r.completed;
-          rec._updated = r.updated_at;
-          rec._synced = true;
-          
-          let local = localMap.get(r.id);
-          if (!local) {
-            localMap.set(r.id, rec);
-            hasChanges = true;
-            downloadedCount++;
-          } else if (r.updated_at && (!local._updated || r.updated_at > local._updated)) {
-            localMap.set(r.id, rec);
-            hasChanges = true;
-            downloadedCount++;
-          }
-        });
-        if (hasChanges) {
-          visits = [...localMap.values()];
-          persist();
-        }
+    // 2.3 Visitas & Exclusões (Reconciliação e Remoção de Deletados)
+    const recResult = await downloadAndReconcileVisits();
+    downloadedCount = recResult.downloadedCount;
+    removedCount = recResult.removedCount;
+
+    // 3. ENVIAR APENAS LANÇAMENTOS NOVOS OU ALTERADOS OFFLINE (UPLOAD)
+    let dMap = getDeletedVisitsMap();
+    let visitsToUpload = visits.filter(v => v._synced === false && !v._deleted && !dMap[v._id]);
+
+    if (visitsToUpload.length > 0) {
+      let rowsToUpsert = visitsToUpload.map(v => ({
+        id: v._id,
+        type: v._type,
+        producer_name: subject(v),
+        property_name: property(v),
+        visit_date: date(v) || null,
+        responsible: responsible(v),
+        route_city: routeOrCity(v),
+        daily_volume: dailyVolume(v),
+        risk_level: riskLevel(v),
+        completed: v._completed !== false,
+        data: v,
+        updated_at: v._updated || new Date().toISOString()
+      }));
+
+      const { error: upErr } = await supabaseClient.from('visitas').upsert(rowsToUpsert, { onConflict: 'id' });
+      if (!upErr) {
+        uploadedCount = visitsToUpload.length;
+        visitsToUpload.forEach(v => { v._synced = true; });
+        persist();
+      } else {
+        console.warn('Erro ao enviar visitas para o Supabase:', upErr);
       }
-    } catch (errV) {
-      console.warn('Erro ao baixar visitas:', errV);
     }
 
     supabaseStatus = 'online';
@@ -2202,7 +2395,12 @@ async function syncWithSupabase(showNotification = false) {
     }
 
     if (showNotification) {
-      toast(`✅ Sincronização Concluída! ${uploadedCount} visita(s) enviada(s), ${downloadedCount} atualizações baixadas da nuvem.`);
+      let parts = [];
+      if (uploadedCount > 0) parts.push(`${uploadedCount} enviada(s)`);
+      if (downloadedCount > 0) parts.push(`${downloadedCount} baixada(s)`);
+      if (removedCount > 0) parts.push(`${removedCount} excluída(s) sincronizada(s)`);
+      let summary = parts.length > 0 ? parts.join(', ') : 'Nuvem 100% atualizada';
+      toast(`✅ Sincronização Concluída! ${summary}.`);
     }
   } catch (err) {
     console.error('Erro geral durante sincronização:', err);
@@ -2221,6 +2419,10 @@ async function saveVisitToSupabase(rec) {
     supabaseStatus = 'offline';
     updateHeaderUserAndCloud();
     return;
+  }
+  let dMap = getDeletedVisitsMap();
+  if (rec._deleted || dMap[rec._id]) {
+    return; // Não salva registro já excluído
   }
   try {
     const { error } = await supabaseClient.from('visitas').upsert({
@@ -2257,12 +2459,15 @@ async function saveVisitToSupabase(rec) {
 }
 
 async function deleteVisitFromSupabase(id) {
-  if (!supabaseClient || !navigator.onLine) return;
-  try {
-    await supabaseClient.from('visitas').delete().eq('id', id);
-  } catch (err) {
-    console.warn('Erro ao deletar no Supabase:', err);
-  }
+  let dMap = getDeletedVisitsMap();
+  let delRecord = dMap[id] || {
+    id: id,
+    producer_name: '',
+    responsible: '',
+    deleted_at: new Date().toISOString(),
+    deleted_by: currentUser ? `${currentUser.nome} (${currentUser.cargo || currentUser.role})` : 'Usuário Atalat'
+  };
+  await pushDeletionToSupabase(delRecord);
 }
 
 function updateHeaderUserAndCloud() {
@@ -2531,89 +2736,111 @@ async function openUsersModal() {
   if (view === 'team') render();
 }
 
-function openSettingsModal() {
+function closeModal() {
   let modal = $('#modal-container');
-  modal.innerHTML = `
-    <div class="modal-overlay">
-      <div class="modal" style="max-width:580px">
-        <div class="modal-top-bar">
-          <h2>⚙️ Configurações & Ferramentas</h2>
-          <button class="modal-close-btn" data-act="close-modal" title="Fechar">✕</button>
+  if (modal) modal.innerHTML = '';
+  document.body.style.overflow = '';
+}
+
+function openSettingsModal() {
+  view = 'settings';
+  report = null;
+  window.scrollTo(0, 0);
+  render();
+}
+
+function settingsHTML() {
+  return `
+    <div class="wrap" style="max-width:840px">
+      <div class="top">
+        <div>
+          <button class="ghost" data-act="all" style="padding-left:0;margin-bottom:8px;font-size:13.5px;font-weight:600">← Voltar às Visitas</button>
+          <div class="brand">LATICÍNIOS ATALAT · SISTEMA & FERRAMENTAS</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <h1>Configurações & Ferramentas</h1>
+            <span class="badge" style="background:#EBF3FB;color:var(--primary);font-size:11px;padding:3px 8px;border:1px solid #D0E1F3">${APP_VERSION}</span>
+          </div>
+          <p class="muted" style="margin:4px 0 0">Exportação avançada, alteração de senha, rotinas de backup e modelos de formulários.</p>
         </div>
-        <p class="muted small">Exportação avançada, alteração de senha, rotinas de backup e modelos de formulários.</p>
-
-        <div style="display:grid;gap:12px;margin:20px 0">
-          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;background:#F0FDF4;border:1px solid #BBF7D0">
-            <div>
-              <strong style="color:#166534">📋 Módulo PQFL (Diagnóstico de Campo & Relatórios)</strong><br>
-              <span class="muted small">Avalie qualquer produtor com o checklist oficial de 40 perguntas, calcule notas e emita relatórios oficiais.</span>
-            </div>
-            <a href="pqfl.html" class="button secondary" style="background:#fff;border-color:#86efac;color:#166534;text-decoration:none;font-weight:700;padding:8px 14px;border-radius:6px;white-space:nowrap">Acessar Módulo PQFL</a>
-          </div>
-
-          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;background:#EFF6FF;border:1px solid #BFDBFE">
-            <div>
-              <strong>🔑 Alterar Minha Senha</strong><br>
-              <span class="muted small">Modifique sua senha de acesso ao sistema com rapidez e segurança.</span>
-            </div>
-            <button class="primary" data-act="open-change-password-modal" style="white-space:nowrap">🔑 Mudar Senha</button>
-          </div>
-
-          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <strong>📊 Exportar Planilha Excel (.csv)</strong><br>
-              <span class="muted small">Gera arquivo formatado para Excel com todas as visitas filtradas.</span>
-            </div>
-            <button class="secondary" data-act="export-excel" style="white-space:nowrap">📥 Baixar Excel</button>
-          </div>
-
-          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <strong>💾 Backup Completo de Registros (JSON)</strong><br>
-              <span class="muted small">Exporta arquivo de segurança com todas as visitas e tipos cadastrados.</span>
-            </div>
-            <button class="ghost" data-act="export" style="white-space:nowrap">💾 Salvar Backup</button>
-          </div>
-
-          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <strong>📤 Restaurar Backup de Registros</strong><br>
-              <span class="muted small">Carrega visitas e formulários de um backup JSON anterior.</span>
-            </div>
-            <div>
-              <button class="ghost" data-act="import" style="white-space:nowrap">📤 Importar Backup</button>
-              <input id="import-file" type="file" accept="application/json,.json" hidden>
-            </div>
-          </div>
-
-          <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <strong>📝 Criar Novo Tipo de Formulário</strong><br>
-              <span class="muted small">Personalize questionários de campo específicos para a Atalat.</span>
-            </div>
-            <button class="ghost" data-act="custom-builder" style="white-space:nowrap">➕ Novo Tipo</button>
-          </div>
-
-          ${currentUser && currentUser.role === 'admin' ? `
-            <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;background:#F9FAFC">
-              <div>
-                <strong>✨ Dados de Demonstração</strong><br>
-                <span class="muted small">Carregar 12 visitas realistas para treinamento de equipe na rota Ataléia/MG.</span>
-              </div>
-              <button class="ghost" data-act="load-demo" style="white-space:nowrap">Carregar Dados</button>
-            </div>
-          ` : ''}
-        </div>
-
-        <div style="background:#F4F7FB;border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-          <span>🥛 <strong>Laticínios Atalat</strong></span>
-          <span>Versão: <strong style="color:var(--ink)">${APP_VERSION}</strong> (${APP_BUILD_DATE})</span>
-        </div>
-
-        <div class="toolbar" style="justify-content:flex-end">
-          <button class="primary" data-act="close-modal">Concluído</button>
+        <div class="top-actions-grid no-print" style="margin:0">
+          <button class="primary" data-act="all">← Voltar</button>
         </div>
       </div>
+
+      <!-- Offline Status Banner -->
+      ${offlineBannerHTML()}
+
+      <div style="display:grid;gap:14px;margin:24px 0">
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;background:#F0FDF4;border:1px solid #BBF7D0;flex-wrap:wrap;gap:12px">
+          <div style="max-width:560px">
+            <strong style="color:#166534;font-size:16px">📋 Módulo PQFL (Diagnóstico de Campo & Relatórios)</strong><br>
+            <span class="muted small">Avalie qualquer produtor com o checklist oficial de 40 perguntas, calcule notas e emita relatórios oficiais com cálculo automático de pontuação.</span>
+          </div>
+          <a href="pqfl.html" class="button secondary" style="background:#fff;border-color:#86efac;color:#166534;text-decoration:none;font-weight:700;padding:9px 16px;border-radius:6px;white-space:nowrap">Acessar Módulo PQFL ↗</a>
+        </div>
+
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;background:#EFF6FF;border:1px solid #BFDBFE;flex-wrap:wrap;gap:12px">
+          <div style="max-width:560px">
+            <strong style="color:#1E40AF;font-size:16px">🔑 Alterar Minha Senha de Acesso</strong><br>
+            <span class="muted small">Atualize sua senha pessoal de acesso com segurança para sincronização offline e online.</span>
+          </div>
+          <button class="primary" data-act="open-change-password-modal" style="white-space:nowrap;padding:9px 16px">🔑 Mudar Senha</button>
+        </div>
+
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="max-width:560px">
+            <strong style="font-size:16px">📊 Exportar Planilha Excel (.csv)</strong><br>
+            <span class="muted small">Gera arquivo formatado e compatível com Excel contendo todas as visitas e métricas registradas.</span>
+          </div>
+          <button class="secondary" data-act="export-excel" style="white-space:nowrap;padding:9px 16px">📥 Baixar Excel</button>
+        </div>
+
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="max-width:560px">
+            <strong style="font-size:16px">💾 Backup Completo de Registros (JSON)</strong><br>
+            <span class="muted small">Exporta arquivo de segurança contendo todas as visitas, cadastros e questionários personalizados.</span>
+          </div>
+          <button class="ghost" data-act="export" style="white-space:nowrap;padding:9px 16px">💾 Salvar Backup JSON</button>
+        </div>
+
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="max-width:560px">
+            <strong style="font-size:16px">📤 Restaurar Backup de Registros</strong><br>
+            <span class="muted small">Restaure visitas e modelos de formulários a partir de um arquivo JSON salvo anteriormente.</span>
+          </div>
+          <div>
+            <button class="ghost" data-act="import" style="white-space:nowrap;padding:9px 16px">📤 Importar Backup</button>
+            <input id="import-file" type="file" accept="application/json,.json" hidden>
+          </div>
+        </div>
+
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="max-width:560px">
+            <strong style="font-size:16px">📝 Criar Novo Tipo de Formulário</strong><br>
+            <span class="muted small">Configure questionários personalizados e seções adicionais para novas rotinas técnicas e comerciais.</span>
+          </div>
+          <button class="ghost" data-act="custom-builder" style="white-space:nowrap;padding:9px 16px">➕ Novo Tipo</button>
+        </div>
+
+        ${currentUser && currentUser.role === 'admin' ? `
+          <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;background:#F9FAFC;flex-wrap:wrap;gap:12px">
+            <div style="max-width:560px">
+              <strong style="font-size:16px">✨ Dados de Demonstração</strong><br>
+              <span class="muted small">Carregar 12 visitas realistas para treinamento de equipe na rota Ataléia/MG.</span>
+            </div>
+            <button class="ghost" data-act="load-demo" style="white-space:nowrap;padding:9px 16px">Carregar Dados Exemplo</button>
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="toolbar no-print" style="justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="ghost" data-act="all">← Voltar às Visitas</button>
+        <span class="muted small">🥛 Laticínios Atalat · Sistema Oficial ${APP_VERSION}</span>
+      </div>
+
+      <footer style="text-align:center;padding:32px 16px 20px;color:var(--muted);font-size:12px" class="no-print">
+        🥛 Laticínios Atalat · Configurações do Sistema · <strong>${APP_VERSION}</strong> (${APP_BUILD_DATE})
+      </footer>
     </div>
   `;
 }
@@ -2623,6 +2850,8 @@ function openChangePasswordModal(targetUid) {
   let isOwn = !targetUid || (currentUser && (targetUid === currentUser.id || targetUid === currentUser.usuario));
   let targetUser = isOwn ? currentUser : (users.find(u => u.id === targetUid || u.usuario === targetUid) || { id: targetUid, nome: 'Colaborador', usuario: targetUid });
   let finalUid = targetUser ? targetUser.id : (targetUid || (currentUser ? currentUser.id : ''));
+
+  document.body.style.overflow = 'hidden';
 
   modal.innerHTML = `
     <div class="modal-overlay">
@@ -2683,9 +2912,9 @@ async function handleSaveChangePassword(targetUid) {
   }
 
   await updatePassword(targetUid, p1);
-  $('#modal-container').innerHTML = '';
+  closeModal();
   toast('✅ Senha atualizada com sucesso!');
-  if (view === 'team') render();
+  if (view === 'team' || view === 'settings') render();
 }
 
 async function approveUser(uid) {
@@ -2855,6 +3084,7 @@ async function handleLogin() {
     saveSession(adminObj);
     toast('Bem-vindo, Ítalo Silva!');
     view = 'list';
+    if (supabaseClient) syncWithSupabase();
     render();
     return;
   }
@@ -2873,6 +3103,7 @@ async function handleLogin() {
     saveSession(adminObj);
     toast('Bem-vindo, Administrador Atalat!');
     view = 'list';
+    if (supabaseClient) syncWithSupabase();
     render();
     return;
   }
@@ -2901,6 +3132,7 @@ async function handleLogin() {
           saveSession(data);
           toast(`Bem-vindo, ${data.nome}!`);
           view = 'list';
+          if (supabaseClient) syncWithSupabase();
           render();
           return;
         }
@@ -2926,6 +3158,7 @@ async function handleLogin() {
       saveSession(found);
       toast(`Bem-vindo, ${found.nome}!`);
       view = 'list';
+      if (supabaseClient) syncWithSupabase();
       render();
       return;
     }
@@ -3005,7 +3238,8 @@ function saveTypes() {
 function load() {
   try {
     let x = JSON.parse(localStorage.getItem(KEY) || '[]');
-    visits = Array.isArray(x) ? x : [];
+    let dMap = getDeletedVisitsMap();
+    visits = Array.isArray(x) ? x.filter(v => v && !v._deleted && !dMap[v._id]) : [];
   } catch (e) {
     visits = [];
   }
@@ -3195,14 +3429,44 @@ function save(complete = false) {
   }
 }
 
-function removeVisit(xId) {
-  if (!confirm('Tem certeza de que deseja excluir permanentemente este registro?')) return;
-  visits = visits.filter(v => v._id !== xId);
+async function removeVisit(xId) {
+  let v = visits.find(x => x._id === xId);
+  let prodName = v ? (subject(v) || 'Sem nome') : 'este registro';
+  let respName = v ? (responsible(v) || '') : '';
+  let msg = `Tem certeza de que deseja excluir permanentemente o lançamento do produtor "${prodName}"?`;
+  if (respName) msg += `\n(Lançado por: ${respName})`;
+  msg += `\n\nEsta exclusão é autenticada e será sincronizada com todos os colaboradores, impedindo que o lançamento retorne quando a pessoa fizer login novamente.`;
+  
+  if (!confirm(msg)) return;
+
+  let delRecord = {
+    id: xId,
+    producer_name: v ? subject(v) : '',
+    responsible: respName,
+    type: v ? v._type : 'visita',
+    deleted_at: new Date().toISOString(),
+    deleted_by: currentUser ? `${currentUser.nome} (${currentUser.cargo || currentUser.role || 'Usuário'})` : 'Usuário Atalat'
+  };
+
+  // 1. Gravar no mapa local de exclusões
+  let dMap = getDeletedVisitsMap();
+  dMap[xId] = delRecord;
+  saveDeletedVisitsMap(dMap);
+
+  // 2. Adicionar à fila de pendências offline
+  let pendingDels = getPendingDeletions().filter(d => d.id !== xId);
+  pendingDels.push(delRecord);
+  savePendingDeletions(pendingDels);
+
+  // 3. Remover da lista local e persistir
+  visits = visits.filter(x => x._id !== xId);
   try {
     persist();
-    deleteVisitFromSupabase(xId);
-    toast('Visita removida');
     render();
+    toast('✅ Lançamento excluído com sucesso.');
+    if (navigator.onLine && supabaseClient) {
+      await pushDeletionToSupabase(delRecord);
+    }
   } catch (e) {
     load();
     toast('Erro ao remover');
@@ -3210,7 +3474,8 @@ function removeVisit(xId) {
 }
 
 function getFilteredVisits() {
-  let list = [...visits];
+  let dMap = getDeletedVisitsMap();
+  let list = visits.filter(v => v && !v._deleted && !dMap[v._id]);
   
   if (searchQuery.trim()) {
     let q = searchQuery.toLowerCase().trim();
@@ -3352,6 +3617,7 @@ function formatWhatsAppText(v) {
 function openWhatsAppModal(v) {
   let txt = formatWhatsAppText(v);
   let ph = (phone(v) || '').replace(/\D/g, '');
+  document.body.style.overflow = 'hidden';
   let modal = $('#modal-container');
   modal.innerHTML = `
     <div class="modal-overlay">
@@ -3597,13 +3863,15 @@ function reportHTML(v) {
 
 function listHTML() {
   let list = getFilteredVisits();
-  let allCount = visits.length;
-  let doneCount = visits.filter(v => v._completed !== false).length;
+  let dMap = getDeletedVisitsMap();
+  let allVisits = visits.filter(v => v && !v._deleted && !dMap[v._id]);
+  let allCount = allVisits.length;
+  let doneCount = allVisits.filter(v => v._completed !== false).length;
   let draftCount = allCount - doneCount;
   
-  let totalVolumeProspect = visits.filter(v => v._type === 'compra').reduce((acc, v) => acc + dailyVolume(v), 0);
-  let totalVolumeDefense = visits.filter(v => v._type === 'defesa' && v.d12 !== 'Perdido').reduce((acc, v) => acc + dailyVolume(v), 0);
-  let highRiskCount = visits.filter(v => v._type === 'relacionamento' && /^(LARANJA|VERMELHO)/.test(v.r33 || '')).length;
+  let totalVolumeProspect = allVisits.filter(v => v._type === 'compra').reduce((acc, v) => acc + dailyVolume(v), 0);
+  let totalVolumeDefense = allVisits.filter(v => v._type === 'defesa' && v.d12 !== 'Perdido').reduce((acc, v) => acc + dailyVolume(v), 0);
+  let highRiskCount = allVisits.filter(v => v._type === 'relacionamento' && /^(LARANJA|VERMELHO)/.test(v.r33 || '')).length;
 
   let pendingUsersCount = users.filter(u => u.status === 'pendente').length;
 
@@ -3685,11 +3953,11 @@ function listHTML() {
 
         <div class="filter-pills">
           <button class="filter-pill ${filterType === 'all' ? 'active' : ''}" data-act="filter-type" data-type="all">Todas <span>(${allCount})</span></button>
-          <button class="filter-pill ${filterType === 'compra' ? 'active' : ''}" data-act="filter-type" data-type="compra">Compra <span>(${visits.filter(v => v._type === 'compra').length})</span></button>
-          <button class="filter-pill ${filterType === 'relacionamento' ? 'active' : ''}" data-act="filter-type" data-type="relacionamento">Relacionamento <span>(${visits.filter(v => v._type === 'relacionamento').length})</span></button>
-          <button class="filter-pill ${filterType === 'comercial' ? 'active' : ''}" data-act="filter-type" data-type="comercial">Comercial <span>(${visits.filter(v => v._type === 'comercial').length})</span></button>
-          <button class="filter-pill ${filterType === 'defesa' ? 'active' : ''}" data-act="filter-type" data-type="defesa">Defesa <span>(${visits.filter(v => v._type === 'defesa').length})</span></button>
-          <button class="filter-pill ${filterType === 'perda' ? 'active' : ''}" data-act="filter-type" data-type="perda">Perda <span>(${visits.filter(v => v._type === 'perda').length})</span></button>
+          <button class="filter-pill ${filterType === 'compra' ? 'active' : ''}" data-act="filter-type" data-type="compra">Compra <span>(${allVisits.filter(v => v._type === 'compra').length})</span></button>
+          <button class="filter-pill ${filterType === 'relacionamento' ? 'active' : ''}" data-act="filter-type" data-type="relacionamento">Relacionamento <span>(${allVisits.filter(v => v._type === 'relacionamento').length})</span></button>
+          <button class="filter-pill ${filterType === 'comercial' ? 'active' : ''}" data-act="filter-type" data-type="comercial">Comercial <span>(${allVisits.filter(v => v._type === 'comercial').length})</span></button>
+          <button class="filter-pill ${filterType === 'defesa' ? 'active' : ''}" data-act="filter-type" data-type="defesa">Defesa <span>(${allVisits.filter(v => v._type === 'defesa').length})</span></button>
+          <button class="filter-pill ${filterType === 'perda' ? 'active' : ''}" data-act="filter-type" data-type="perda">Perda <span>(${allVisits.filter(v => v._type === 'perda').length})</span></button>
         </div>
 
         <div class="filter-dropdowns">
@@ -3937,8 +4205,10 @@ function formHTML() {
 }
 
 function dashboardHTML() {
+  let dMap = getDeletedVisitsMap();
+  let activeVisits = visits.filter(v => v && !v._deleted && !dMap[v._id]);
   let isAllTime = dashboardMonth === 'all';
-  let all = isAllTime ? visits : visits.filter(v => date(v)?.slice(0, 7) === dashboardMonth);
+  let all = isAllTime ? activeVisits : activeVisits.filter(v => date(v)?.slice(0, 7) === dashboardMonth);
   let done = all.filter(v => v._completed !== false);
   let draft = all.length - done.length;
   
@@ -4313,6 +4583,8 @@ function render() {
     root.innerHTML = dashboardHTML();
   } else if (view === 'team') {
     root.innerHTML = teamHTML();
+  } else if (view === 'settings') {
+    root.innerHTML = settingsHTML();
   } else if (view === 'picker') {
     root.innerHTML = `
       <div class="wrap" style="max-width:680px">
@@ -4409,7 +4681,7 @@ document.addEventListener('change', async e => {
 
 document.addEventListener('click', async e => {
   if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
-    $('#modal-container').innerHTML = '';
+    closeModal();
     return;
   }
   let el = e.target.closest('[data-choice],[data-act]');
@@ -4536,7 +4808,7 @@ document.addEventListener('click', async e => {
     syncWithSupabase(true);
   }
   else if (a === 'close-modal') {
-    $('#modal-container').innerHTML = '';
+    closeModal();
   }
   else if (a === 'copy-wa') {
     let ta = $('#wa-text-area');
