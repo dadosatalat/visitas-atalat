@@ -52,7 +52,11 @@
       -webkit-font-smoothing: antialiased;
     }
     
-    h1, h2, h3, .brand, .name { font-family: Georgia, serif; }
+    h1, h2, h3, .brand, .name {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
     h1 { font-size: 30px; margin: 0 0 4px; color: var(--ink); }
     h2 { font-size: 23px; margin: 0 0 12px; color: var(--ink); }
     h3 { font-size: 17px; margin: 0 0 10px; color: var(--ink); }
@@ -292,7 +296,8 @@
       font-size: 24px;
       color: var(--primary);
       font-weight: 700;
-      font-family: Georgia, serif;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.01em;
     }
     .stat-card span {
       font-size: 11px;
@@ -992,6 +997,201 @@
       align-items: center;
     }
 
+    /* Modern SaaS App Header & Page Hero */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 10px 0 16px;
+      border-bottom: 1px solid var(--line-light);
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+    .app-header-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-clean {
+      height: 38px;
+      width: auto;
+      object-fit: contain;
+      display: block;
+    }
+    .app-header-divider {
+      width: 1px;
+      height: 22px;
+      background: var(--line);
+    }
+    .app-header-title-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .app-header-org {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.01em;
+    }
+    .app-header-version {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 6px;
+      background: #EBF3FB;
+      color: var(--primary);
+      border: 1px solid #D0E1F3;
+      font-weight: 700;
+    }
+    .app-header-user-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12.5px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .user-chip-name {
+      color: var(--ink);
+      font-weight: 500;
+    }
+    .user-chip-actions {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+    .user-chip-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      padding: 2px 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--muted);
+      border-radius: 4px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .user-chip-btn:hover {
+      background: #f1f5f9;
+      color: var(--ink);
+      border-color: #e2e8f0;
+    }
+    .user-chip-logout {
+      color: #dc2626 !important;
+      background: #fef2f2 !important;
+      border-color: #fee2e2 !important;
+    }
+    .user-chip-logout:hover {
+      background: #fee2e2 !important;
+      border-color: #fecaca !important;
+    }
+
+    .page-hero {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+    .page-hero-left {
+      max-width: 580px;
+    }
+    .page-hero-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      margin: 0 0 4px;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+    .page-hero-sub {
+      font-size: 13.5px;
+      color: var(--muted);
+      margin: 0;
+      line-height: 1.45;
+    }
+    .page-hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .nav-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--ink);
+      text-decoration: none;
+      height: 38px;
+      box-sizing: border-box;
+      transition: all 0.15s ease;
+      cursor: pointer;
+    }
+    .nav-action-btn:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+    }
+    .action-pqfl {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+    .action-pqfl:hover {
+      background: #dcfce7;
+      border-color: #86efac;
+    }
+    .action-analytics {
+      background: #f0f9ff;
+      border-color: #bae6fd;
+      color: #0369a1;
+    }
+    .action-analytics:hover {
+      background: #e0f2fe;
+      border-color: #7dd3fc;
+    }
+    .action-team {
+      background: #faf5ff;
+      border-color: #e9d5ff;
+      color: #6b21a8;
+    }
+    .action-team:hover {
+      background: #f3e8ff;
+      border-color: #d8b4fe;
+    }
+    .action-settings {
+      padding: 8px 11px;
+      color: #475569;
+    }
+    .action-new-visit {
+      height: 38px !important;
+      padding: 8px 18px !important;
+      font-size: 13.5px !important;
+      font-weight: 700 !important;
+      border-radius: 8px !important;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 2px 5px rgba(30, 94, 58, 0.25);
+    }
+
     .table-wrap {
       width: 100%;
       overflow-x: auto;
@@ -1090,6 +1290,64 @@
       
       /* Header & Navigation on Mobile */
       .wrap { padding: 16px 12px 60px; }
+
+      .app-header {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-bottom: 12px;
+        margin-bottom: 16px;
+      }
+      .app-header-brand {
+        gap: 8px;
+      }
+      .logo-clean {
+        height: 32px;
+      }
+      .app-header-org {
+        display: none;
+      }
+      .app-header-user-area {
+        gap: 6px;
+      }
+
+      .page-hero {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+      .page-hero-title {
+        font-size: 22px;
+      }
+      .page-hero-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+      }
+      .action-new-visit {
+        grid-column: span 2;
+        height: 44px !important;
+        font-size: 15px !important;
+        justify-content: center;
+        order: -1;
+      }
+      .action-pqfl {
+        justify-content: center;
+      }
+      .action-analytics {
+        justify-content: center;
+      }
+      .action-team {
+        grid-column: span 2;
+        justify-content: center;
+      }
+      .action-settings {
+        justify-content: center;
+      }
+
       .wrap > .top {
         flex-direction: column;
         align-items: stretch;
@@ -1788,7 +2046,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.7.6';
+const APP_VERSION = 'v2.7.7';
 const APP_BUILD_DATE = '02/10/2026';
 
 // STORAGE & CONFIG KEYS
@@ -3783,40 +4041,59 @@ function listHTML() {
 
   return `
     <div class="wrap">
-      <div class="top">
-        <div>
-          <img class="logo" alt="Atalat — Ataléia, Minas Gerais" src="${LOGO_BASE64}">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <h1>Gestão de Visitas a Produtores</h1>
-            <span class="badge" style="background:#EBF3FB;color:var(--primary);font-size:11px;padding:3px 8px;border:1px solid #D0E1F3" title="Versão do Sistema">${APP_VERSION}</span>
+      <!-- TOP NAVIGATION BAR (Logo, Empresa, Status & Usuário) -->
+      <header class="app-header no-print">
+        <div class="app-header-brand">
+          <img class="logo-clean" alt="Atalat — Ataléia, Minas Gerais" src="${LOGO_BASE64}">
+          <span class="app-header-divider"></span>
+          <div class="app-header-title-box">
+            <span class="app-header-org">Laticínios Atalat</span>
+            <span class="app-header-version">${APP_VERSION}</span>
           </div>
-          <p class="muted" style="margin:4px 0 0">Captação de leite, relacionamento comercial, defesa de rota e inteligência de campo.</p>
         </div>
-        <div class="top-actions-grid">
+
+        <div class="app-header-user-area">
           <button id="cloud-status-btn" class="cloud-pill ${supabaseStatus === 'online' ? 'cloud-online' : supabaseStatus === 'syncing' ? 'cloud-syncing' : 'cloud-offline'}" data-act="force-sync" title="Clique para sincronizar dados com a nuvem agora">
-            ${supabaseStatus === 'online' ? '🟢 Nuvem Sincronizada' : supabaseStatus === 'syncing' ? '🔄 Sincronizando...' : (visits.filter(v => v._synced === false).length > 0 ? `🟠 Modo Offline (${visits.filter(v => v._synced === false).length} pendente)` : '🟠 Modo Offline (Gravação Local)')}
+            ${supabaseStatus === 'online' ? '🟢 Nuvem Sincronizada' : supabaseStatus === 'syncing' ? '🔄 Sincronizando...' : (visits.filter(v => v._synced === false).length > 0 ? `🟠 Modo Offline (${visits.filter(v => v._synced === false).length})` : '🟠 Modo Offline')}
           </button>
           
           ${currentUser ? `
-            <div class="user-pill no-print">
-              <span>👤 <strong>${esc(currentUser.nome)}</strong> <span class="muted small">(${esc(currentUser.cargo || 'Equipe')})</span></span>
-              <div style="display:inline-flex;gap:4px;align-items:center">
-                <button class="ghost" data-act="open-change-password-modal" style="padding:2px 8px;font-size:12px;font-weight:600" title="Alterar minha senha">🔑 Senha</button>
-                <button class="ghost danger-btn" data-act="logout" style="padding:2px 6px;font-size:12px">Sair</button>
+            <div class="user-chip">
+              <span class="user-chip-name" title="${esc(currentUser.cargo || 'Equipe')}">👤 <strong>${esc(currentUser.nome.split(' ')[0])}</strong></span>
+              <div class="user-chip-actions">
+                <button class="user-chip-btn" data-act="open-change-password-modal" title="Alterar minha senha">🔑 Senha</button>
+                <button class="user-chip-btn user-chip-logout" data-act="logout" title="Sair do sistema">Sair</button>
               </div>
             </div>
           ` : ''}
+        </div>
+      </header>
 
+      <!-- PAGE HERO & ACTION BAR -->
+      <div class="page-hero no-print">
+        <div class="page-hero-left">
+          <h1 class="page-hero-title">Gestão de Visitas a Produtores</h1>
+          <p class="page-hero-sub">Captação de leite, relacionamento comercial, defesa de rota e inteligência de campo.</p>
+        </div>
+
+        <div class="page-hero-actions">
+          <a href="pqfl.html" class="nav-action-btn action-pqfl" title="Módulo de Diagnóstico e Avaliação PQFL (IN 76 e 77)">
+            <span>📋</span> PQFL
+          </a>
+          <button class="nav-action-btn action-analytics" data-act="dashboard" title="Painel de Inteligência Analítica e Indicadores">
+            <span>📊</span> Painel Analítico
+          </button>
           ${currentUser && currentUser.role === 'admin' ? `
-            <button class="secondary" data-act="open-users-modal">
-              👥 Equipe & Autorizações ${pendingUsersCount > 0 ? `<span class="badge badge-pending" style="margin-left:4px">${pendingUsersCount}</span>` : ''}
+            <button class="nav-action-btn action-team" data-act="open-users-modal" title="Gerenciar Equipe e Autorizações">
+              <span>👥</span> Equipe ${pendingUsersCount > 0 ? `<span class="badge badge-pending">${pendingUsersCount}</span>` : ''}
             </button>
           ` : ''}
-
-          <a href="pqfl.html" class="no-print" style="background:#f0fdf4;border:1px solid #86efac;color:#166534;font-weight:700;display:inline-flex;align-items:center;gap:6px;text-decoration:none;padding:9px 14px;border-radius:8px;font-size:13.5px;" title="Módulo de Diagnóstico PQFL (Cadastrar e Avaliar Produtores)">📋 Diagnóstico PQFL</a>
-          <button class="secondary" data-act="dashboard">📊 Painel Analítico</button>
-          <button class="ghost" data-act="open-settings-modal" title="Configurações, Backup e Ferramentas">⚙️ Configurações</button>
-          <button class="primary" data-act="pick" style="padding:11px 20px;font-size:15px">＋ Nova Visita</button>
+          <button class="nav-action-btn action-settings" data-act="open-settings-modal" title="Configurações, Backup e Ferramentas">
+            <span>⚙️</span> Configurações
+          </button>
+          <button class="primary action-new-visit" data-act="pick" title="Registrar Nova Visita a Produtor">
+            <span>＋</span> Nova Visita
+          </button>
         </div>
       </div>
 
