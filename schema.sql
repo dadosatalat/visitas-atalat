@@ -177,13 +177,51 @@ CREATE POLICY "Permitir atualização pública de pqfl_excluidos" ON public.diag
 DROP POLICY IF EXISTS "Permitir exclusão pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos;
 CREATE POLICY "Permitir exclusão pública de pqfl_excluidos" ON public.diagnosticos_pqfl_excluidos FOR DELETE USING (true);
 
--- 8. HABILITAR REALTIME
-ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas_excluidas;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.tipos_visitas;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl_excluidos;
+-- 8. HABILITAR REALTIME (Idempotente - não falha se já estiver adicionado)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'visitas'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'visitas_excluidas'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.visitas_excluidas;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'tipos_visitas'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.tipos_visitas;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'usuarios'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.usuarios;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'diagnosticos_pqfl'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'diagnosticos_pqfl_excluidos'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.diagnosticos_pqfl_excluidos;
+  END IF;
+END $$;
 
 -- 8. INSERIR USUÁRIOS ADMINISTRADORES PADRÃO (SE NÃO EXISTIREM)
 INSERT INTO public.usuarios (id, nome, usuario, senha, email_contato, cargo, role, status, autorizado_por)
