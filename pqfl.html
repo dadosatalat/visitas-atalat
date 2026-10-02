@@ -1002,7 +1002,7 @@
         <a href="/" class="nav-btn" style="padding:6px 12px;font-size:12px">← Voltar às Visitas</a>
         <img src="logo_atalat.png" alt="Atalat" style="height:36px;width:auto;object-fit:contain">
         <div class="brand-title">Atalat PQFL</div>
-        <span class="version-tag">v2.7.5</span>
+        <span class="version-tag">v2.7.6</span>
       </div>
 
       <div class="nav-tabs">
@@ -1374,43 +1374,8 @@
     let currentId = null;
     let currentAnswers = {};
 
-    // INICIALIZAÇÃO COM DADOS DO MANOEL MESSIAS COMO PADRÃO
-    const INITIAL_DEMO_DATA = [
-      {
-        id: 'pqfl_manoel_messias_20251222',
-        produtor: 'Manoel Messias Barbosa',
-        data: '2025-12-22',
-        telefone: '(33) 9931-6059',
-        idade: '63',
-        cpf: '',
-        propriedade: 'Fazenda Vista Boa',
-        cidade: 'Frei Gaspar',
-        unidade: 'Matriz',
-        area: '8 AL',
-        tanque: '1000',
-        producao: '90',
-        vl: '20',
-        vs: '0',
-        recria: '15',
-        maoObra: 'Familiar',
-        pessoas: '1',
-        refrigeracao: 'Individual',
-        escolaridade: 'Ensino fundamental incompleto',
-        pretensao: 'Aumentar',
-        sucessao: 'Não',
-        assistencia: 'Sim',
-        antibioticos: 'Terramicina',
-        observacoes: 'Produtor motivado a aumentar volume. Necessita de suporte urgente no controle de carência veterinária e manejo forrageiro para seca.',
-        tecnico: 'Irai Pereira',
-        produtorResp: 'Manoel Messias Barbosa',
-        answers: {
-          1:'C', 2:'C', 3:'C', 4:'C', 5:'C', 6:'C', 7:'C', 8:'C', 9:'C', 10:'NC',
-          11:'C', 12:'C', 13:'NC', 14:'NC', 15:'NC', 16:'NC', 17:'NC', 18:'C', 19:'C', 20:'NC',
-          21:'C', 22:'C', 23:'C', 24:'NA', 25:'NC', 26:'C', 27:'C', 28:'C', 29:'C', 30:'NC',
-          31:'NC', 32:'NC', 33:'NC', 34:'C', 35:'NC', 36:'NC', 37:'NC', 38:'NA', 39:'NC', 40:'NC'
-        }
-      }
-    ];
+    // DADOS INICIAIS ZERADOS (SEM DEMOS)
+    const INITIAL_DEMO_DATA = [];
 
     // ==============================================================================
     // SUPABASE NUVEM & PERSISTÊNCIA OFFLINE-FIRST DO PQFL
@@ -1474,11 +1439,11 @@
     function getDiagnostics() {
       try {
         let raw = localStorage.getItem(STORAGE_KEY);
-        let list = raw ? JSON.parse(raw) : INITIAL_DEMO_DATA;
+        let list = raw ? JSON.parse(raw) : [];
         let dMap = getDeletedPQFLMap();
-        return Array.isArray(list) ? list.filter(d => d && !dMap[d.id]) : [];
+        return Array.isArray(list) ? list.filter(d => d && !dMap[d.id] && d.id !== 'pqfl_manoel_messias_20251222' && !String(d.id || '').startsWith('demo_')) : [];
       } catch (e) {
-        return INITIAL_DEMO_DATA;
+        return [];
       }
     }
 
@@ -1511,12 +1476,29 @@
 
     function initSupabase() {
       try {
+        // Purgar dados de exemplo do localStorage
+        try {
+          let cur = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          if (Array.isArray(cur)) {
+            let filtered = cur.filter(d => d && d.id !== 'pqfl_manoel_messias_20251222' && !String(d.id || '').startsWith('demo_'));
+            if (filtered.length !== cur.length) {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+            }
+          }
+        } catch(e) {}
+
         let saved = JSON.parse(localStorage.getItem(SUPABASE_CONFIG_KEY) || '{}');
         let url = saved.url || DEFAULT_SUPABASE_URL;
         let key = saved.key || DEFAULT_SUPABASE_KEY;
         if (url && key && window.supabase) {
           supabaseClient = window.supabase.createClient(url, key);
           supabaseStatus = 'online';
+
+          // Purgar diagnóstico demo do Supabase se existir
+          try {
+            supabaseClient.from('diagnosticos_pqfl').delete().eq('id', 'pqfl_manoel_messias_20251222').then(() => {}).catch(() => {});
+          } catch(e) {}
+
           setupPQFLRealtime();
           syncPQFLWithSupabase(false);
         } else {
@@ -1586,6 +1568,12 @@
       localList.forEach(item => localMap.set(item.id, item));
 
       data.forEach(row => {
+        if (row.id === 'pqfl_manoel_messias_20251222' || String(row.id || '').startsWith('demo_')) {
+          if (supabaseClient) {
+            supabaseClient.from('diagnosticos_pqfl').delete().eq('id', row.id).then(() => {}).catch(() => {});
+          }
+          return;
+        }
         if (dMap[row.id]) return; // Já excluído localmente
         let remoteObj = row.data || {};
         remoteObj.id = row.id;

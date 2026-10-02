@@ -1788,7 +1788,7 @@ const RISK_COLORS = {
 };
 
 // APP VERSION & BUILD
-const APP_VERSION = 'v2.7.5';
+const APP_VERSION = 'v2.7.6';
 const APP_BUILD_DATE = '02/10/2026';
 
 // STORAGE & CONFIG KEYS
@@ -1946,6 +1946,13 @@ function initSupabase() {
       supabaseConfig = { url, key };
       supabaseClient = window.supabase.createClient(url, key);
       supabaseStatus = 'online';
+
+      // Purgar dados de demonstracao do Supabase se existirem
+      try {
+        supabaseClient.from('visitas').delete().like('id', 'v_demo_%').then(() => {}).catch(() => {});
+        supabaseClient.from('visitas_excluidas').delete().like('id', 'v_demo_%').then(() => {}).catch(() => {});
+      } catch (e) {}
+
       syncWithSupabase();
 
       // Realtime listener for new user registration requests (READ ONLY)
@@ -2083,6 +2090,12 @@ async function downloadAndReconcileVisits() {
   let remoteActiveIds = new Set();
 
   remoteVisits.forEach(r => {
+    if (String(r.id || '').startsWith('v_demo_')) {
+      if (supabaseClient) {
+        supabaseClient.from('visitas').delete().eq('id', r.id).then(() => {}).catch(() => {});
+      }
+      return;
+    }
     let rec = r.data || {};
     let isDeleted = rec._deleted === true || r.type === 'excluido' || (r.producer_name && r.producer_name.startsWith('[EXCLUÍDO]'));
     if (isDeleted) {
@@ -2116,9 +2129,13 @@ async function downloadAndReconcileVisits() {
   saveDeletedVisitsMap(dMap);
 
   // Reconciliação local:
-  // 1. Purgar localmente qualquer visita confirmada como excluída
+  // 1. Purgar localmente qualquer visita confirmada como excluída ou demo
   let initialLen = visits.length;
   let localVisits = visits.filter(v => {
+    if (String(v._id || '').startsWith('v_demo_')) {
+      removedCount++;
+      return false;
+    }
     if (remoteDeletedIds.has(v._id) || dMap[v._id] || v._deleted) {
       removedCount++;
       return false;
@@ -3229,7 +3246,9 @@ function load() {
   try {
     let x = JSON.parse(localStorage.getItem(KEY) || '[]');
     let dMap = getDeletedVisitsMap();
-    visits = Array.isArray(x) ? x.filter(v => v && !v._deleted && !dMap[v._id]) : [];
+    visits = Array.isArray(x) ? x.filter(v => v && !v._deleted && !dMap[v._id] && !String(v._id || '').startsWith('v_demo_')) : [];
+    // Garantir que dados demo sejam removidos do storage local
+    localStorage.setItem(KEY, JSON.stringify(visits));
   } catch (e) {
     visits = [];
   }
@@ -3653,110 +3672,7 @@ function captureGPS(fieldId) {
 }
 
 function loadDemoData() {
-  if (visits.length > 0 && !confirm('Substituir registros atuais ou adicionar 12 visitas de demonstração para a região de Ataléia/MG?')) return;
-  
-  let demo = [
-    {
-      _id: 'v_demo_1', _type: 'compra', _completed: true, _updated: '2026-09-28T09:00:00Z',
-      p1: 'Carlos Mendes', p2: '2026-09-27', p3: 'José Alencar Sobrinho', p4: 'Fazenda Boa Vista',
-      p5: '123.456.789-00', p6: '(33) 99876-5432', p7: 'Ataléia', p8: 'Comunidade São Geraldo',
-      p9: 'Lat: -18.043210, Long: -41.112340', p10: 'Prospecção ativa da Atalat',
-      p11: '650', p12: '450', p13: '850', p14: '38', p15: '2', p16: 'Sim', p17: '900', p18: 'Sim',
-      p20: 'Sim', p21: 'Laticínio', p22: 'Laticínio Concorrente A', p23: '1 a 3 anos',
-      p24: 'Pagamento', p25: 'Sim', p26: '2.65', p27: 'Sim', p28: 'Não',
-      p30: 'Sim', p31: 'Individual', p32: '1500', p33: 'Bom', p34: 'Sim', p35: 'Não',
-      p36: 'Sim', p37: '2', p38: 'A cada 48 horas',
-      p39: 'Sim', p40: '2026-09-15', p41: '25000', p42: '320000', p43: 'Não', p44: 'Não', p45: 'Não',
-      p47: ['Preço competitivo', 'Pontualidade de pagamento', 'Regularidade da coleta'],
-      p48: 'Sim', p49: '2.85', p50: 'Garantia de pagamento em dia e bonificação por CCS abaixo de 400k',
-      p51: 'Apresentada tabela de pagamento Atalat com bônus qualidade e frete incluso.',
-      p52: '650', p53: '2026-10-05', p54: 'Alta — 60% a 80%'
-    },
-    {
-      _id: 'v_demo_2', _type: 'relacionamento', _completed: true, _updated: '2026-09-28T09:10:00Z',
-      r1: 'Carlos Mendes', r2: '2026-09-26', r3: 'PRD-104', r4: 'Sebastião Ferreira Lima', r5: 'Sítio Recanto Feliz',
-      r6: 'Linha 04 - Ouro Verde', r7: '480', r8: 'Estável', r9: 'Pequeno aumento', r10: 'Não',
-      r12: 'Sim', r13: 'Reforma de piquetes rotacionados para capim Mombaça',
-      r14: '4 — Satisfeito', r15: '5 — Muito satisfeito', r16: '5 — Muito satisfeito',
-      r17: '4 — Satisfeito', r18: '5 — Muito satisfeito', r19: '4 — Satisfeito', r20: '4 — Satisfeito', r21: '4 — Satisfeito',
-      r22: 'Não', r25: 'Sim', r26: 'Qualidade do leite',
-      r27: 'Pontualidade rigorosa de pagamento e respeito com o produtor',
-      r28: 'Horário de coleta no período da manhã varia um pouco',
-      r29: 'Não', r30: 'Não', r31: 'Não', r32: 'Nenhuma no momento',
-      r33: 'VERDE — relacionamento saudável', r34: 'Não',
-      r37: 'Carlos Mendes', r38: '2026-11-20', r39: '2026-11-20', r40: 'Fornecedor chave na rota, relacionamento sólido.'
-    },
-    {
-      _id: 'v_demo_3', _type: 'relacionamento', _completed: true, _updated: '2026-09-28T09:20:00Z',
-      r1: 'Fernando Rocha', r2: '2026-09-25', r3: 'PRD-078', r4: 'Antônio de Pádua Morais', r5: 'Fazenda das Palmeiras',
-      r6: 'Linha 02 - Ataléia / Fidelândia', r7: '1200', r8: 'Crescendo', r9: 'Estabilidade', r10: 'Não',
-      r12: 'Sim', r13: 'Aquisição de resfriador de 3.000 litros',
-      r14: '2 — Insatisfeito', r15: '3 — Regular', r16: '4 — Satisfeito',
-      r17: '3 — Regular', r18: '3 — Regular', r19: '3 — Regular', r20: '2 — Insatisfeito', r21: '2 — Insatisfeito',
-      r22: 'Sim', r23: 'Captação/compra de leite', r24: 'Divergência de R$ 0,08 no preço base do último fechamento',
-      r25: 'Sim', r26: 'Nutrição', r27: 'Estrutura da empresa', r28: 'Preço base defasado em relação à cooperativa vizinha',
-      r29: 'Sim', r30: 'Sim', r31: 'Está avaliando alternativas', r32: 'Preço',
-      r33: 'LARANJA — risco concreto', r34: 'Sim',
-      r35: 'Revisar tabela de volume e agendar visita com Gerente de Captação',
-      r36: 'Captação/compra de leite', r37: 'Fernando Rocha', r38: '2026-10-02', r39: '2026-10-05',
-      r40: 'Volume alto (1.200 L/dia). Risco real de migração se não houver ajuste comercial rápido.'
-    },
-    {
-      _id: 'v_demo_4', _type: 'defesa', _completed: true, _updated: '2026-09-28T09:30:00Z',
-      d1: 'Fernando Rocha', d2: '2026-09-25', d3: 'PRD-078', d4: 'Antônio de Pádua Morais', d5: 'Linha 02 - Ataléia / Fidelândia',
-      d6: '1200', d7: 'Preço', d8: 'Proposta concreta',
-      d9: 'Proposta de adequação da bonificação por fidelidade e volume acima de 1.000 L/dia',
-      d10: 'Diretoria / Fernando Rocha', d11: '2026-10-02', d12: 'Em acompanhamento',
-      d13: 'Produtor aguarda retorno até sexta-feira antes de assinar contrato com concorrente.'
-    },
-    {
-      _id: 'v_demo_5', _type: 'comercial', _completed: true, _updated: '2026-09-28T09:40:00Z',
-      m1: 'Carlos Mendes', m2: '2026-09-24', m3: 'PRD-210', m4: 'Marcos Vinícius Barbosa', m5: 'Franciscópolis',
-      m6: 'Aumentar volume', m7: '350', m8: 'Produtor comprou 12 novilhas Girolando e quer direcionar todo o leite para Atalat',
-      m9: 'Acordado recolhimento integral a partir de 01/10', m10: 'Acordo fechado',
-      m11: 'Carlos Mendes', m12: '2026-10-01'
-    },
-    {
-      _id: 'v_demo_6', _type: 'perda', _completed: true, _updated: '2026-09-28T09:50:00Z',
-      l1: 'Carlos Mendes', l2: '2026-09-20', l3: 'PRD-045', l4: 'Geraldo Magela Souza', l5: 'Linha 01 - Teófilo Otoni',
-      l6: '400', l7: 'Encerramento da produção', l8: 'Arrendou a propriedade para gado de corte',
-      l9: 'Sim', l10: 'Baixa', l11: 'Manter contato de cortesia semestral', l12: 'Carlos Mendes - Março/2027'
-    },
-    {
-      _id: 'v_demo_7', _type: 'compra', _completed: true, _updated: '2026-09-28T10:00:00Z',
-      p1: 'Carlos Mendes', p2: '2026-09-22', p3: 'Manoel Messias da Silva', p4: 'Fazenda Santa Terezinha',
-      p5: '456.789.012-34', p6: '(33) 98844-1122', p7: 'Mantena', p8: 'Córrego do Cedro',
-      p9: 'Próximo ao campo de futebol', p10: 'Indicação de fornecedor',
-      p11: '800', p12: '600', p13: '1100', p14: '45', p15: '2', p16: 'Sim', p17: '1200', p18: 'Sim',
-      p20: 'Sim', p21: 'Cooperativa', p22: 'Cooperativa Regional', p23: 'Mais de 3 anos',
-      p24: 'Preço', p25: 'Sim', p26: '2.70', p27: 'Sim', p28: 'Não',
-      p30: 'Sim', p31: 'Individual', p32: '2000', p33: 'Bom', p34: 'Sim', p35: 'Não',
-      p36: 'Sim', p37: '1', p38: 'A cada 48 horas',
-      p39: 'Sim', p40: '2026-09-10', p41: '18000', p42: '280000', p43: 'Não', p44: 'Não', p45: 'Não',
-      p47: ['Preço competitivo', 'Transparência nas análises', 'Regularidade da coleta'],
-      p48: 'Sim', p49: '2.88', p50: 'Preço competitivo e suporte na rota',
-      p51: 'Enviada simulação com média trimestral Atalat.',
-      p52: '800', p53: '2026-10-15', p54: 'Alta — 60% a 80%'
-    },
-    {
-      _id: 'v_demo_8', _type: 'relacionamento', _completed: false, _updated: '2026-09-28T10:05:00Z',
-      r1: 'Fernando Rocha', r2: '2026-09-28', r3: 'PRD-155', r4: 'Benedito Ramos', r5: 'Fazenda Cachoeira',
-      r6: 'Linha 03 - Pescador', r7: '300', r8: 'Estável', r9: 'Estabilidade', r10: 'Sim',
-      r11: 'Clima/seca', r12: 'Não',
-      r14: '3 — Regular', r15: '4 — Satisfeito', r16: '4 — Satisfeito', r17: '4 — Satisfeito',
-      r18: '3 — Regular', r19: '4 — Satisfeito', r20: '3 — Regular', r21: '3 — Regular',
-      r22: 'Não', r25: 'Sim', r26: 'Nutrição', r27: 'Pagamento em dia', r28: 'Seca afetou as pastagens',
-      r29: 'Não', r30: 'Não', r31: 'Não', r32: 'Nenhuma no momento',
-      r33: 'AMARELO — atenção', r34: 'Não', r40: 'Rascunho de visita de acompanhamento'
-    }
-  ];
-  
-  visits = demo;
-  persist();
-  toast('12 visitas de demonstração carregadas com sucesso!');
-  if (supabaseClient) syncWithSupabase();
-  view = 'list';
-  render();
+  toast('Dados de demonstração foram desativados.');
 }
 
 
